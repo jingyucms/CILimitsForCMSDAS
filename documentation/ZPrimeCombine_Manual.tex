@@ -1,0 +1,369 @@
+%%%%%%%%%%%%     Einstellungen      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Grundlegende Einstellungen
+\documentclass[fontsize=11pt,openright,paper=a4,pointlessnumbers,bibtotoc]{scrartcl}
+\usepackage[bottom=3.0cm, left=3.0cm, right=3.0cm]{geometry} 
+\usepackage[squaren, thinspace ,thinqspace,binary]{SIunits}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+\newcommand{\changefont}[3]{
+\fontfamily{#1} \fontseries{#2} \fontshape{#3} \selectfont}
+%\changefont{pbk}{b}{sc}
+\usepackage{lmodern}
+\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
+\usepackage[T1]{fontenc}
+%\changefont{phv}{m}{n}
+\usepackage{amsmath}
+%\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[english]{babel} % neue deutsche Rechtschreibung
+\usepackage{graphicx}
+%\usepackage{picins}
+\usepackage{wasysym}
+\usepackage{subfigure}
+\usepackage{afterpage}
+\usepackage{color}
+\usepackage{float}
+\usepackage{mathrsfs}
+\usepackage{tabularx}
+\usepackage{slashed}
+\usepackage{xspace}
+\usepackage{rotating}
+\usepackage{multirow}
+%\usepackage{ptdr-definitions}
+\usepackage{footnote}
+\makesavenoteenv{tabular}
+\makesavenoteenv{table}
+\usepackage{mathtools}
+
+
+\usepackage{listings}
+\usepackage{color}
+\usepackage{textcomp}
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\lstset{
+	backgroundcolor=\color{lbcolor},
+	tabsize=4,
+	rulecolor=,
+	language=matlab,
+        basicstyle=\scriptsize,
+        upquote=true,
+        aboveskip={1.5\baselineskip},
+        columns=fixed,
+        showstringspaces=false,
+        extendedchars=true,
+        breaklines=true,
+        prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+        frame=single,
+        showtabs=false,
+        showspaces=false,
+        showstringspaces=false,
+        identifierstyle=\ttfamily,
+        keywordstyle=\color[rgb]{0,0,1},
+        commentstyle=\color[rgb]{0.133,0.545,0.133},
+        stringstyle=\color[rgb]{0.627,0.126,0.941},
+}
+
+
+
+
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+% Swap the definition of \abs* and \norm*, so that \abs
+% and \norm resizes the size of the brackets, and the 
+% starred version does not.
+\makeatletter
+\let\oldabs\abs
+\def\abs{\@ifstar{\oldabs}{\oldabs*}}
+%
+\let\oldnorm\norm
+\def\norm{\@ifstar{\oldnorm}{\oldnorm*}}
+\makeatother
+
+\usepackage[small]{caption}
+\usepackage[plainheadsepline,automark]{scrpage2}
+\usepackage[Q=yes]{examplep}
+
+\newcount\colveccount
+\newcommand*\colvec[1]{
+        \global\colveccount#1
+        \begin{pmatrix}
+        \colvecnext
+}
+\def\colvecnext#1{
+        #1
+        \global\advance\colveccount-1
+        \ifnum\colveccount>0
+                \\
+                \expandafter\colvecnext
+        \else
+                \end{pmatrix}
+        \fi
+}
+
+
+\captionsetup{font={small}}
+
+% Verlinktes Inhaltsverzeichnis
+\usepackage[bookmarks,colorlinks=true,linkcolor=black]{hyperref}
+
+\parskip 10pt
+\setlength{\parindent}{0mm}
+% Header
+\pagestyle{scrheadings}
+% loescht voreingestellte Stile
+\clearscrheadings
+\clearscrplain
+\automark[section]{chapter}
+
+\setheadsepline{1pt}        %Separate Linie im Kopf
+%\renewcommand*{\chapterheadstartvskip}{\vspace*{0pt}} % Abstand vor Kapitelüberschriften
+
+\ihead[]{\leftmark}
+\ohead[]{\rightmark}
+\ofoot[\pagemark]{\pagemark}
+
+\cfoot[]{}
+
+\author{Jan-Frederik Schulte}
+\title{ZPrimeCombine Manual}
+
+\begin{document}
+
+
+
+
+
+\thispagestyle{empty}
+\begin{center}
+  ~ \\
+  
+ {\huge\bf{ZPrimeCombine} \\ Interface to the Higgs Combine Tool for the $Z^{'} \rightarrow \ell \ell$ search\\}
+ \vspace{2cm}
+ {\Large \bf{User Manual}}\\
+  \vspace{5cm}
+    {\Large \bf{Jan-Frederik Schulte}}\\
+	\vspace{2cm}
+	{\Large \bf{Version 0.1, 2017/13/01}}	
+\end{center}
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+The ZPrimeCombine package, to be found at TODO: Move to gitlab and link here, provides an interface between the experimental results of the $Z^{'} \rightarrow \ell \ell$ analysis and the Higgs Combine Tool. This tool, referred to simply as ``combine'' going further, is in turn an interface to the underlying statistical tools provided by RooStats. This document aims to summarize the functionality of the the tool and give instructions how to use it to derive limits and significances for the analysis. 
+
+\section{Setup}
+The current implementation in the package is based on version \verb+v6.3.0+ of combine. CMSSW\_7\_4\_7 is used to set the environment, but this is only to ensure a consistent version of ROOT, combine does not rely on CMSSW itself. Combine is installed using the following commands
+\begin{scriptsize}
+
+\begin{verbatim}
+export SCRAM_ARCH=slc6_amd64_gcc491
+cmsrel CMSSW_7_4_7
+cd CMSSW_7_4_7/src 
+cmsenv
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v6.3.0
+scramv1 b clean; scramv1 b
+\end{verbatim}
+
+\end{scriptsize}
+Detailed documentation of combine can be found on this \href{https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideHiggsAnalysisCombinedLimit}{Twiki page}.
+
+To finish the setup, just clone the ZPrimeCombine repository. At the moment, there are no version tags, so simply use the master branch. The framework is python based, so no need for compiling.
+
+\section{Usage}
+The central entry point to the framework is the script \verb+runInterpretation.py+. It steers both the creation of the inputs given to combine as well as the execution of it, either locally or via batch/grid jobs. Let's have a look at its functionality:
+\begin{verbatim}
+Steering tool for Zprime -> ll analysis interpretation in combine
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -r, --redo            recreate datacards and workspaces for this
+                        configuration
+  -w, --write           create datacards and workspaces for this configuration
+  -b, --binned          use binned dataset
+  -s, --submit          submit jobs to cluster/GRID
+  --signif              run significance instead of limits
+  --LEE                 run significance on BG only toys to estimate LEE
+  --frequentist         use frequentist CLs limits
+  --hybrid              use frequenstist-bayesian hybrid methods
+  -e, --expected        expected limits
+  -i, --inject          inject signal
+  --crab                submit to crab
+  -c CONFIG, --config CONFIG
+                        name of the congiguration to use
+  -t TAG, --tag TAG     tag to label output
+  -m MASS, --mass MASS  mass point
+
+\end{verbatim}
+In the following the use of these options for different purposes is described. The most important parameter is \verb+-c+, which tells the framework, which configuration file to use for steering. It is the only argument which is mandatory to give, and the name of the configuration will be used to tag all inputs and results. The configuration files themselves are discussed in the next section. Another universal option is the \verb+-t+ option which can used to tag the in- and output of the tool.
+\subsection{Input creation}
+The first task of the framework is to create the datacards and workspaces used as inputs for combine. To provide the framework with the necessary information, the user has to provide two different types of inputs. All experimental information is located in the \verb+input/+ directory. Here, for each channel of the analysis, there is one \verb+channelConfig_channelName.py+ file. For example, for the barrel-barrel category in the dimuon channel for the ICHEP 2016 result, it looks like the example shown below. Important things are commented throughout.
+\begin{scriptsize}
+\begin{lstlisting}[language=python]
+import ROOT,sys
+ROOT.gROOT.SetBatch(True)
+ROOT.gErrorIgnoreLevel = 1 
+from ROOT import *
+
+nBkg = -1 # If set to minus 1, the overall background normalization is just set to the total number of observed events.
+
+dataFile = "input/dimuon_13TeV_2016_ICHEPDataset_BB.txt" # list of masses of all observed events over the minimal mass threshold
+
+def provideSignalScaling(mass): # This function provides the scaling from the observed number of events to the cross section ratio
+	nz   =  21152                      
+	nsig_scale = 1017.9903604773663       # prescale/eff_z (123.685828798/0.1215) -->derives the lumi 
+	eff = signalEff(mass)
+	result = (nsig_scale*nz*eff)
+	return result
+
+def signalEff(mass): # provides the signal efficiency
+
+	trig_a = 0.9878
+	trig_b = -7.8162E-08
+	trig_c = 0.	
+
+	eff_a     = 1.54
+	eff_b     = -6.72E3
+	eff_c     = 4.69E3 
+	eff_d     = -6.08E-5
+	return	(eff_a+eff_b/(mass+eff_c)+mass*eff_d)*(trig_a + trig_b*mass + trig_c*mass*mass)
+
+		
+
+def signalEffUncert(mass): # gives the signal efficiency uncertainty
+
+	effDown = 1.+(0.03**2 + 0.01**2)**0.5
+	
+	return [1./effDown,1.01]
+
+
+
+def provideUncertainties(mass): # returns the different uncertainties
+
+	result = {}
+
+	result["sigEff"] = signalEffUncert(mass)
+	result["massScale"] = 0.01
+	result ["bkgUncert"] = 1.4
+	
+	return result
+
+
+
+def getResolution(mass): # returns the mass resolution
+	
+	return 1.9E-02 + 2.4E-05*mass -2.4E-09*mass*mass
+
+
+def loadBackgroundShape(ws): # creates the background PDF and adds it to the workspace
+
+	bkg_a = RooRealVar('bkg_a_dimuon_BB','bkg_a_dimuon_BB',28.51)
+	bkg_b = RooRealVar('bkg_b_dimuon_BB','bkg_b_dimuon_BB',-3.614E-4)
+	bkg_c = RooRealVar('bkg_c_dimuon_BB','bkg_c_dimuon_BB',-1.470E-7)
+	bkg_d = RooRealVar('bkg_d_dimuon_BB','bkg_d_dimuon_BB',6.885E-12)
+	bkg_e = RooRealVar('bkg_e_dimuon_BB','bkg_e_dimuon_BB',-4.196)
+	bkg_a.setConstant()
+	bkg_b.setConstant()
+	bkg_c.setConstant()
+	bkg_d.setConstant()
+	bkg_e.setConstant()
+	getattr(ws,'import')(bkg_a,ROOT.RooCmdArg())
+	getattr(ws,'import')(bkg_b,ROOT.RooCmdArg())
+	getattr(ws,'import')(bkg_c,ROOT.RooCmdArg())
+	getattr(ws,'import')(bkg_d,ROOT.RooCmdArg())
+	getattr(ws,'import')(bkg_e,ROOT.RooCmdArg())
+	
+	# background systematics
+	bkg_syst_a = RooRealVar('bkg_syst_a','bkg_syst_a',1.0)
+	bkg_syst_b = RooRealVar('bkg_syst_b','bkg_syst_b',0.000)
+	#bkg_syst_b = RooRealVar('bkg_syst_b','bkg_syst_b',-0.00016666666666)
+	bkg_syst_a.setConstant()
+	bkg_syst_b.setConstant()
+	getattr(ws,'import')(bkg_syst_a,ROOT.RooCmdArg())
+	getattr(ws,'import')(bkg_syst_b,ROOT.RooCmdArg())
+	
+	# background shape
+	ws.factory("ZPrimeMuonBkgPdf::bkgpdf_dimuon_BB(mass_dimuon_BB, bkg_a_dimuon_BB, bkg_b_dimuon_BB, bkg_c_dimuon_BB,bkg_d_dimuon_BB,bkg_e_dimuon_BB,bkg_syst_a,bkg_syst_b)")		
+	ws.factory("ZPrimeMuonBkgPdf::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_BB, bkg_b_dimuon_BB, bkg_c_dimuon_BB,bkg_d_dimuon_BB,bkg_e_dimuon_BB,bkg_syst_a,bkg_syst_b)")		
+
+	return ws
+
+\end{lstlisting}
+\end{scriptsize}
+For each channel of the analysis (i.e. for each subcategory of the dielectron and dimuon channels), one such config has to be provided. The other input to the tool is located in the \verb+cfgs/+ directory. Here, the \verb+scanConguration_ConfigName.py+ files contain all information needed to steer the actual interpretation, setting the channels to be considered, the mass range to be scanned, and similar features. Given here is the example for the combination of the three dimuon subcategories for the ICHEP 2016 dataset.
+\begin{lstlisting}[language=python]
+leptons = "mumu" # lepton combination. Needed for correct labelling in limit plots
+systematics = ["sigEff","bkgUncert","massScale"] # list of uncertainties to be considered
+correlate = False # are the uncertainties correlated between channels?
+masses = [[5,400,1000], [10,1000,2000], [20,2000,4500]] # mass ranges for the observed limit. For example 5 GeV steps between 400 and 1000 GeV, etc.
+massesExp = [[100,400,600,1000,1,500000], [100,600,1000,500,2,500000], [250,1000,1500,100,10,50000], [250,2000,4600,100,10,500000]] #mass ranges for the expected limit. After the mass binning, the latter three integers steer the job creation for CRAB, i.e 100 GeV steps between 400 and 600 with 1000 jobs, 1 toy per job and 500k steps in the Markov Chain
+
+libraries = ["ZPrimeMuonBkgPdf_cxx.so","PowFunc_cxx.so"] # Libraries for PDFs to be given to combine
+
+channels = ["dimuon_BB","dimuon_BEpos","dimuon_BEneg"] # channels to be combined
+numInt = 500000 # number of iterations in the MarkovChain
+numToys = 10 # number of toys for observed limits
+exptToys = 10 # number of toys for expected limits
+width = 0.006 # assumed width of the resonance
+submitTo = "Purdue" # computing resource for batch jobs. Right now only Purdue is explicitly supported, but this should work on all clusters with qsub.
+
+CB = False  # use crystal ball in signal shape?
+signalInjection = {"mass":2000,"width":0.006,"nEvents":10,"CB":True} # parameters for signal injection
+
+\end{lstlisting}
+Using this input, the framework will create first the datacards for the single channels and afterwards combined datacards. For local running, this can be triggered by running with the \verb+-w+ or \verb+-r+ options. In the first case, the datacards are produced and the program is exited without performing any statistical procedures. In the latter case, the datacards are reproduced on the fly before performing statistical interpretations. If a local batch system is used, the input will be created inside the individual jobs to increase performance. When tasks are submitted to CRAB, the input is created locally. 
+
+\subsection{Running statistical procedures}
+If not called with the \verb+-w+ option (which will only write datacards, see above), the default behaviour of \verb+runInterpretation.py+ is to calculate observed limits using the Bayesian approach. For this, the mass binning and the configuration of the algorithm given in the scan configuration is given. There are numerous command line options to modify the statistical methods used
+\begin{itemize}
+\item \verb+-e+ switches the limit calculation to expected limits
+\item \verb+--signif+ switches to calculation of p-Values using the ProfileLikelihoodCalculator
+\item \verb+--frequentist+ uses frequentist calculations for limits or p-Values
+\item \verb+--hybrid+ uses Frequentist-Bayesian Hybrid method for the p-Values
+\end{itemize}
+Apart from these fundamental options, there are several further modifications that can be made
+\subsubsection{Binned limits}
+The \verb+--binned+ option triggers the use of binned instead of unbinned datasets. For this purpose, binned templates are generated from the background and signal PDFs. The binning is hardcoded within the \verb+createInputs.py+ script. The advantage of this approach is a large improvement in speed, the disadvantage is a very long time needed to generate the templates in the first place.
+
+\subsubsection{Single mass points}
+To run a single mass point instead of the full mass scan, the option \verb+-m mass+ can be used.
+
+\subsubsection{Signal injection and Look Elsewhere Effect}
+For performance studies, pseudo-data can be generated in which the statistical interpretation is then performed. When run with the \verb+--inject+ option, pseudo background and signal events are generated according to the respective PDFs. The background is normalized to the yield observed in data in each channel. The signal parameters used for the injection are taken from the scan configuration. The signal events are distributed between the sub-channels according to the signal efficiencies. 
+
+To account for the look elsewhere effect, the \verb+--LEE+ option can be used. Many background only datasets will be generated and p-Value scans will be performed. The tool \verb+readPValueToys.py+ can be used to harvest the large number of resulting result cards.
+\subsubsection{Job submission}
+As the calculations used for the statistical interpretations, parallelization is unavoidable. The framework supports two options for it, submission to local batch systems and CRAB. The \verb+-s+ option triggers submission to batch system. At the moment, only the Purdue system is supported. However, the job configurations can be easily used for any qsub system and should be adaptable to others system as well. 
+
+Less specific and giving access to much more computing resources is submission via crab. At the moment, only expected and observed Bayesian limits are supported. On the upside, submission is very easy, just run the tool with the \verb+--crab+ option. A valid GRID certificate is required.
+
+\subsection{Output processing}
+The output of the combine tool are root files which contain the resulting limit or p-Value as entries in a ROOT tree. The script \verb+createLimitCard.py+ is available to convert these files into simple ascii files. This tool takes a variety of arguments, very similar to the main \verb+runInterpretation.py+ script:
+\begin{verbatim}
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        configuration name (default: )
+  --input INPUT         folder with input root files (default: )
+  -t TAG, --tag TAG     tag (default: )
+  --exp                 write expected limits (default: False)
+  --signif              write pValues (default: False)
+  --injected            injected (default: False)
+  --binned              binned (default: False)
+  --frequentist         use results from frequentist limits (default: False)
+  --hybrid              use results from hybrid significance calculations
+                        (default: False)
+
+\end{verbatim}
+Basically you have to match up the configuration to the one used to create the output. Then you have the choice of either providing the location of the output to be processed with the \verb+--input+ option or leave the tool to figure it out for itself. In the latter case, if will take the newest result produced on a local batch system matching the configuration. 
+
+The plot script \verb+makeLimit
+\end{document}
