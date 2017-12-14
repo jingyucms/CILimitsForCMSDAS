@@ -343,22 +343,7 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         scanConfig =  __import__(scanConfigName)
 	
         binning = scanConfig.binning
-	if dataFile == "":
-		dataFile = config.dataFile
-	with open(dataFile) as f:
-    		events = f.readlines()
 
-#	dataYields = []
-#	for index, lower in enumerate(binning):
-#		if index < len(binning)-1:
-#			dataYields.append(0)
-#			for ev in events:
-#				if float(ev) >= lower and float(ev) < binning[index+1]:
-#					dataYields[index] += 1
-
-#	dataIntegral = 0
-#	for num in dataYields:
-#		dataIntegral += num
 	if 'electron' in channel:
 		lowestMass = 400
 	elif 'muon' in channel:
@@ -521,7 +506,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 
 		 	err = ROOT.Double(0)	
 			val = bkgHistDYTemp.IntegralAndError(bkgHistDYTemp.FindBin(lower),bkgHistDYTemp.FindBin(binning[index+1]-0.001),err)
-			print val
 			bkgHistDY.SetBinContent(index+1,max(0,val))
 			bkgHistDYStatUp.SetBinContent(index+1,max(0,val+err))
 			bkgHistDYStatDown.SetBinContent(index+1,max(0,val-err))
