@@ -20,6 +20,8 @@ Arguments = %s
 Queue 1
 '''
 
+
+
 def getRange(mass,DM=False,CI=False):
 	if DM:
 		if 120 <= mass <= 200:
@@ -55,9 +57,9 @@ def getRange(mass,DM=False,CI=False):
 		if mass == 22:
 			return 3
 		if mass == 28:
-			return 3
-		if mass == 34:
 			return 4
+		if mass == 34:
+			return 5
 	else:
 		if 120 <= mass <= 200:
 			return 200000
@@ -133,7 +135,7 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
 				else:
 					resultFile = "higgsCombine%s.%s.mH%d.root"%(args.config,algo,Lambda)
 				
-				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s.%s.mH%d_%s.root"%(outDir,args.config,algo,Lambda,interference)])
+				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s%s_%s.%s.mH%d.root"%(outDir,args.config,args.tag,interference,algo,Lambda)])
 	
 				if args.lower:
 					from tools import convertToLowerLimit
@@ -245,12 +247,12 @@ def submitLimits(args,config,outDir,binned,tag):
 		for resource in supportedResources:
 			print resource
 		sys.exit()	
-	if not os.path.exists("logFiles_%s"%args.config):
-    		os.makedirs("logFiles_%s"%args.config)
+	if not os.path.exists("logFiles_%s%s"%(args.config,args.tag)):
+    		os.makedirs("logFiles_%s%s"%(args.config,args.tag))
 
 	if not args.inject:
 		srcDir = os.getcwd()
-		os.chdir(srcDir+"/logFiles_%s"%args.config)
+		os.chdir(srcDir+"/logFiles_%s%s"%(args.config,args.tag))
 	else:
 		srcDir = os.getcwd()
 		if not os.path.exists("logFiles_%s_%d_%.4f_%d"%(args.config,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"])):
@@ -290,7 +292,7 @@ def submitLimits(args,config,outDir,binned,tag):
 					if args.expected:
 						numJobs = int(config.exptToys/10)
 						for i in range(0,numJobs):
-							arguments='%s %s %s %s %d %d %d %d %d %s %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+							arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
 							condorFile = open("condor_FNAL.cfg", "w")
 							condorFile.write(condorTemplateFNAL%arguments)
 							condorFile.close()
@@ -298,7 +300,7 @@ def submitLimits(args,config,outDir,binned,tag):
 							subprocess.call(subCommand,shell=True)			
 					else:
 						#for i in range(0,config.numToys):
-						arguments='%s %s %s %s %d %d %d %d %d %s %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+						arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
 						condorFile = open("condor_FNAL.cfg", "w")
 						condorFile.write(condorTemplateFNAL%arguments)
 						condorFile.close()
@@ -309,15 +311,17 @@ def submitLimits(args,config,outDir,binned,tag):
 
 
 
-				elif config.submitTo == "Purdue":
+
+
+				if config.submitTo == "Purdue":
 					if args.expected:
-						numJobs = int(config.exptToys/10)
+						numJobs = int(config.exptToys/50)
 						for i in range(0,numJobs):
-							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,50,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
 							subprocess.call(subCommand,shell=True)			
 					else:
 						#for i in range(0,config.numToys):
-						subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+						subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
 						subprocess.call(subCommand,shell=True)	
 						import time
 						time.sleep(0.1)		
