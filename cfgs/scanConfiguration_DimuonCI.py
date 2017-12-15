@@ -15,6 +15,6 @@ channels = ["dimuon_BB","dimuon_BE"]
 numInt = 1000000
 numToys = 6
 exptToys = 500
-submitTo = "Purdue"
+submitTo = "FNAL"
 
 		

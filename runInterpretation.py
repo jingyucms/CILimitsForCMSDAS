@@ -4,8 +4,21 @@ sys.path.append('cfgs/')
 import argparse
 import subprocess
 
-supportedResources = ["Purdue"]
+supportedResources = ["Purdue","FNAL"]
 
+condorTemplateFNAL='''
+universe = vanilla
+Executable = ../submission/CILimits_FNAL.sh
+Requirements = OpSys == "LINUX"&& (Arch != "DUMMY" )
+Should_Transfer_Files = NO
+Output = sleep_$(Cluster)_$(Process).stdout
+Error = sleep_$(Cluster)_$(Process).stderr
+Log = sleep_$(Cluster)_$(Process).log
+notify_user = jschulte@cern.ch
+x509userproxy = $ENV(X509_USER_PROXY)
+Arguments = %s
+Queue 1
+'''
 
 def getRange(mass,DM=False,CI=False):
 	if DM:
@@ -272,7 +285,31 @@ def submitLimits(args,config,outDir,binned,tag):
                        	        	cardName = args.config + "_combined" + "_%d_%s"%(Lambda,interference) + ".txt"
                        		if binned:
 					cardName = cardName.split(".")[0] + "_binned.txt"
-				if config.submitTo == "Purdue":
+
+				if config.submitTo == "FNAL":
+					if args.expected:
+						numJobs = int(config.exptToys/10)
+						for i in range(0,numJobs):
+							arguments='%s %s %s %s %d %d %d %d %d %s %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+							condorFile = open("condor_FNAL.cfg", "w")
+							condorFile.write(condorTemplateFNAL%arguments)
+							condorFile.close()
+							subCommand = "condor_submit condor_FNAL.cfg"
+							subprocess.call(subCommand,shell=True)			
+					else:
+						#for i in range(0,config.numToys):
+						arguments='%s %s %s %s %d %d %d %d %d %s %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.spin2,Libs)
+						condorFile = open("condor_FNAL.cfg", "w")
+						condorFile.write(condorTemplateFNAL%arguments)
+						condorFile.close()
+						subCommand = "condor_submit condor_FNAL.cfg"
+						subprocess.call(subCommand,shell=True)	
+						import time
+						time.sleep(0.1)		
+
+
+
+				elif config.submitTo == "Purdue":
 					if args.expected:
 						numJobs = int(config.exptToys/10)
 						for i in range(0,numJobs):
