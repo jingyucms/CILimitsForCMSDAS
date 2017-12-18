@@ -130,8 +130,8 @@ if __name__ == "__main__":
                                 		limitTree = ROOT.TChain()
                                 		limitTree.Add(fileName+"/limit")
                                 		for entry in limitTree:
-							print entry
-							outFile.write("%d %.15f\n"%(Lambda,entry.limit))        
+							if not entry.limit == 10:
+								outFile.write("%d %.15f\n"%(Lambda,entry.limit))        
                 			else:
 						missingFiles.append(fileName)	
 			if len(missingFiles) == 0:

@@ -7,7 +7,7 @@ correlate = False
 lambdas = [10,16,22,28,34]
 interferences = ["ConLL","ConLR","ConRR"]
 
-binning = [400,500,700,1100,1900,3500]
+binning = [400,500,700,1100,1900,3500,5000]
 
 libraries = ["ZPrimeMuonBkgPdf2_cxx.so","PowFunc_cxx.so"]
 

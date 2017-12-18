@@ -55,11 +55,11 @@ def getRange(mass,DM=False,CI=False):
 		if mass == 16:
 			return 2
 		if mass == 22:
-			return 3
-		if mass == 28:
-			return 4
-		if mass == 34:
 			return 5
+		if mass == 28:
+			return 10
+		if mass == 34:
+			return 20
 	else:
 		if 120 <= mass <= 200:
 			return 200000
@@ -116,7 +116,6 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
 				numToys = config.numToys
 				if args.expected:
 					numToys = 1
-	
 				if not args.frequentist:
 					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(Lambda,args.DM,args.CI)]
 				else:
