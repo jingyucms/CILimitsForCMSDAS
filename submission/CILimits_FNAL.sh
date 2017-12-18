@@ -9,26 +9,22 @@ DATACARD=$4
 NINT=$5
 NTOYS=$6
 NTOYSEXP=$7
-MASS=$8
+LAMBDA=$8
 RANGE=$9
 TAG=${10}
-SPIN2=${11}
+SINGLEBIN=${11}
+MASSCUT=${12}
 echo ${SRC}
 echo $DATACARD
 echo $NINT
 echo $NTOYS
 echo $NTOYSEXP
-echo $MASS
+echo $LAMBDA
 echo $TAG
 ARGS=("$@")
 LIBPART=""
 END=$#
-for ((i=11;i<END;i++)); do
-    LIBPART+=" --LoadLibrary "
-    echo ${ARGS[$i]}
-    LIBPART+=${ARGS[$i]}
-done
-echo $LIBPART
+
 
 Name=${CONFIG}${LABEL:1}
 
@@ -110,18 +106,18 @@ ls
 #
 zero=0;
 cd $SRC
-if [[ $SPIN2 -eq $zero ]]; then
-python runInterpretation.py -c $CONFIG -m $MASS -w -t ${LABEL:2} --workDir $WORKDIR --CI
+if [[ $SINGLEBIN -eq $zero ]]; then
+python runInterpretation.py -c $CONFIG -m $LAMBDA -w -t ${LABEL:2} --workDir $WORKDIR --CI
 else
-python runInterpretation.py -c $CONFIG -m $MASS -w -t ${LABEL:2} --workDir $WORKDIR --spin2 --CI
+python runInterpretation.py -c $CONFIG -m $LAMBDA -w -t ${LABEL:2} --workDir $WORKDIR --singlebin -m $MASSCUT --CI
 fi
 cd ${WORKDIR}
 echo $DATACARD
 
 if [[ $NTOYSEXP -eq $zero ]]; then
-combine -M MarkovChainMC dataCards_${Name}/${DATACARD} -n ${Name} -m $MASS -i $NINT --tries $NTOYS --prior flat --rMax $RANGE  $LIBPART 
+combine -M MarkovChainMC dataCards_${Name}/${DATACARD} -n ${Name} -m $LAMBDA -i $NINT --tries $NTOYS --prior flat --rMax $RANGE  $LIBPART 
 else
-combine -M MarkovChainMC dataCards_${Name}/${DATACARD} -n $Name -m $MASS -i $NINT --tries $NTOYS -t $NTOYSEXP --prior flat --rMax $RANGE $LIBPART -s 0
+combine -M MarkovChainMC dataCards_${Name}/${DATACARD} -n $Name -m $LAMBDA -i $NINT --tries $NTOYS -t $NTOYSEXP --prior flat --rMax $RANGE $LIBPART -s 0
 fi
 
 #
@@ -142,7 +138,7 @@ echo "Copying to " ${OUTDIR}/$TAG
 if [[ $NTOYSEXP -eq $zero ]]; then
 cp ${WORKDIR}/*.root ${OUTDIR}/$TAG/
 else
-cp ${WORKDIR}/higgsCombine${Name}.MarkovChainMC.mH${MASS}.0.root ${OUTDIR}/$TAG//higgsCombine${Name}.MarkovChainMC.mH${MASS}.${NTOYS}.root
+cp ${WORKDIR}/higgsCombine${Name}.MarkovChainMC.mH${LAMBDA}.0.root ${OUTDIR}/$TAG//higgsCombine${Name}.MarkovChainMC.mH${LAMBDA}.${NTOYS}.root
 fi
 echo "what is in " ${OUTDIR}/$TAG
 ls -lrt ${OUTDIR} | tail

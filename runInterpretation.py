@@ -16,7 +16,7 @@ Error = sleep_$(Cluster)_$(Process).stderr
 Log = sleep_$(Cluster)_$(Process).log
 notify_user = jschulte@cern.ch
 x509userproxy = $ENV(X509_USER_PROXY)
-Arguments = %s
+Arguments = "%s"
 Queue 1
 '''
 
@@ -291,7 +291,7 @@ def submitLimits(args,config,outDir,binned,tag):
 					if args.expected:
 						numJobs = int(config.exptToys/10)
 						for i in range(0,numJobs):
-							arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
+							arguments='%s %s %s %s %d %d %d %d %d %s %d %d'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass)
 							condorFile = open("condor_FNAL.cfg", "w")
 							condorFile.write(condorTemplateFNAL%arguments)
 							condorFile.close()
@@ -299,7 +299,7 @@ def submitLimits(args,config,outDir,binned,tag):
 							subprocess.call(subCommand,shell=True)			
 					else:
 						#for i in range(0,config.numToys):
-						arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
+						arguments='%s %s %s %s %d %d %d %d %d %s %d %d'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass)
 						condorFile = open("condor_FNAL.cfg", "w")
 						condorFile.write(condorTemplateFNAL%arguments)
 						condorFile.close()

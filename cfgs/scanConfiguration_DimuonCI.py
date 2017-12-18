@@ -9,7 +9,7 @@ interferences = ["ConLL","ConLR","ConRR"]
 
 binning = [400,500,700,1100,1900,3500,5000]
 
-libraries = ["ZPrimeMuonBkgPdf2_cxx.so","PowFunc_cxx.so"]
+libraries = []
 
 channels = ["dimuon_BB","dimuon_BE"]
 numInt = 1000000
