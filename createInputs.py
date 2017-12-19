@@ -343,37 +343,8 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         scanConfig =  __import__(scanConfigName)
 	
         binning = scanConfig.binning
-	if dataFile == "":
-		dataFile = config.dataFile
-	with open(dataFile) as f:
-    		events = f.readlines()
-
-#	dataYields = []
-#	for index, lower in enumerate(binning):
-#		if index < len(binning)-1:
-#			dataYields.append(0)
-#			for ev in events:
-#				if float(ev) >= lower and float(ev) < binning[index+1]:
-#					dataYields[index] += 1
-
-#	dataIntegral = 0
-#	for num in dataYields:
-#		dataIntegral += num
-	if 'electron' in channel:
-		lowestMass = 400
-	elif 'muon' in channel:
-		lowestMass = 400
         from array import array
  
-
-	ws = RooWorkspace(channel)
-
-	mass = RooRealVar('massFullRange','massFullRange',1000, lowestMass, 3500 )
-	getattr(ws,'import')(mass,ROOT.RooCmdArg())
-	
-	
-	ws = config.loadBackgroundShape(ws,useShapeUncert=False)
-	setIntegrator(ws,'bkgpdf_fullRange')
 
 	inputFileName = "input/inputsCI/inputsCI_%s_%dTeV_%s.root"%(channel,L,interference)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
@@ -416,7 +387,7 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	pdfUncert = [0.01,0.0125,0.02,0.035,0.065,0.10]
 
 	dataHistTemp = inputFile.Get("dataHist_%s"%channel)
-	dataIntegral = dataHistTemp.Integral(dataHistTemp.FindBin(lowestMass),dataHistTemp.GetNbinsX())
+	dataIntegral = dataHistTemp.Integral(dataHistTemp.FindBin(400),dataHistTemp.GetNbinsX())
 
         scaleName = "scale"
         statName = "stats"
