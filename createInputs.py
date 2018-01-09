@@ -438,42 +438,9 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 
 	for index, lower in enumerate(binning):	
 		if index < len(binning)-1:
-			#ws.var("massFullRange").setRange("window",lower,binning[index+1])
-			#argSet = ROOT.RooArgSet(ws.var("massFullRange"))
-			#integral = ws.pdf("bkgpdf_fullRange").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("window"))
-			#bkgHist.SetBinContent(index+1,dataIntegral*integral.getVal())
-
-	#	 	err = ROOT.Double(0)	
-	#		val = sigHistTemp.IntegralAndError(sigHistTemp.FindBin(lower),sigHistTemp.FindBin(binning[index+1]-0.001),err)
-
-	#		sigHist.SetBinContent(index+1,max(0,val))
-	#		sigHistStatUp.SetBinContent(index+1,max(0,val+err))
-	#		sigHistStatDown.SetBinContent(index+1,max(0,val-err))
-	#		sigHistSmearDown.SetBinContent(index+1,max(0,sigHistSmearTemp.Integral(sigHistSmearTemp.FindBin(lower),sigHistSmearTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistSmearUp.SetBinContent(index+1,max(0,sigHistSmearTemp.Integral(sigHistSmearTemp.FindBin(lower),sigHistSmearTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistScaleDown.SetBinContent(index+1,max(0,sigHistScaleDownTemp.Integral(sigHistScaleDownTemp.FindBin(lower),sigHistScaleDownTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistIDUp.SetBinContent(index+1,max(0,sigHistIDTemp.Integral(sigHistIDTemp.FindBin(lower),sigHistIDTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistIDDown.SetBinContent(index+1,max(0,sigHistIDTemp.Integral(sigHistIDTemp.FindBin(lower),sigHistIDTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistScaleUp.SetBinContent(index+1,max(0,sigHistScaleUpTemp.Integral(sigHistScaleUpTemp.FindBin(lower),sigHistScaleUpTemp.FindBin(binning[index+1]-0.001))))
-	#		sigHistPDFDown.SetBinContent(index+1,max(0,val-val*pdfUncert[index]))
-	#		sigHistPDFUp.SetBinContent(index+1,max(0,val+val*pdfUncert[index]))
 			label = "CITo2Mu_Lam%dTeV%s_%s"%(L,interference,channel)
 			val = signalYields_default[label][str(index)][0]
 			err = signalYields_default[label][str(index)][1]
-#			sigHistPDFDown.SetBinContent(index+1,val-val*pdfUncert[index])
-#			sigHistPDFUp.SetBinContent(index+1,val+val*pdfUncert[index])
-#			sigHist.SetBinContent(index+1,val)
-#			sigHistStatUp.SetBinContent(index+1,val+err)
-#			sigHistStatDown.SetBinContent(index+1,val-err)
-#			val = signalYields_resolution[label][str(index)][0]
-#			sigHistSmearDown.SetBinContent(index+1,val)
-#			sigHistSmearUp.SetBinContent(index+1,val)
-#			val = signalYields_scale[label][str(index)][0]
-#			sigHistScaleDown.SetBinContent(index+1,val)
-#			sigHistScaleUp.SetBinContent(index+1,sigHist.GetBinContent(index+1))
-#			val = signalYields_ID[label][str(index)][0]
-#			sigHistIDUp.SetBinContent(index+1,sigHist.GetBinContent(index+1))
-#			sigHistIDDown.SetBinContent(index+1,val)
 			sigHistPDFDown.SetBinContent(index+1,max(0,val-val*pdfUncert[index]))
 			sigHistPDFUp.SetBinContent(index+1,max(0,val+val*pdfUncert[index]))
 			sigHist.SetBinContent(index+1,max(0,val))
@@ -492,7 +459,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 
 		 	err = ROOT.Double(0)	
 			val = bkgHistDYTemp.IntegralAndError(bkgHistDYTemp.FindBin(lower),bkgHistDYTemp.FindBin(binning[index+1]-0.001),err)
-			print val
 			bkgHistDY.SetBinContent(index+1,max(0,val))
 			bkgHistDYStatUp.SetBinContent(index+1,max(0,val+err))
 			bkgHistDYStatDown.SetBinContent(index+1,max(0,val-err))
@@ -523,7 +489,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 			bkgHistJets.SetBinContent(index+1,max(0,val))
 		
 			dataHist.SetBinContent(index+1,dataHistTemp.Integral(dataHistTemp.FindBin(lower),dataHistTemp.FindBin(binning[index+1]-0.001)))
-			#dataHist.SetBinContent(index+1,dataYields[index])
 	
 	bkgIntegralDY = bkgHistDY.Integral()		
 	bkgIntegralOther = bkgHistOther.Integral()		
