@@ -122,7 +122,6 @@ def __getCommandOutput2(command):
 
 def getFileList(path,result):
 
-		
 	command = 'gfal-ls ' + path
 
     	output = __getCommandOutput2(command).splitlines()
@@ -132,7 +131,7 @@ def getFileList(path,result):
 			return result
 		if not "root" in output[0]:
 			for newPath in output:
-				if not "failed" in newPath:
+				if not "failed" in newPath and not "log" in newPath:
 					result = getFileList(path+"/"+newPath,result)
 			
 		else:

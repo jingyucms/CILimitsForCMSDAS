@@ -6,9 +6,54 @@ from copy import deepcopy
 import numpy
 import math
 import ROOT
-from ROOT import TCanvas,TGraphAsymmErrors,TFile,TH1D,TH1F,TGraph,TGraphErrors,gStyle,TLegend,TLine,TGraphSmooth,TPaveText,TGraphAsymmErrors,TPaveLabel,gROOT
+from ROOT import TCanvas,TGraphAsymmErrors,TFile,TH1D,TH1F,TGraph,TGraphErrors,gStyle,TLegend,TLine,TGraphSmooth,TPaveText,TGraphAsymmErrors,TPaveLabel,gROOT, TF1
 
 ROOT.gROOT.SetBatch(True)
+
+def getFittedXSecCurve(name,kFac):
+
+	p0 = 0
+	p1 = 0
+	if "ConLL" in name:
+		p0 = 3.34025
+		p1 = 438.95
+		#p0 = 7.43293e+06
+		#p1 = 13.822
+	if "ConLR" in name:
+		p0 = 5.31853
+		p1 = 725.261
+	if "ConRR" in name:
+		p0 = 3.52821
+		p1 = 455.939
+	if "DesLL"in name:
+		p0 = -3.81353
+		p1 = 345.912
+	if "DesLR" in name:
+		p0 = -4.09965
+		p1 = 324.175
+	if "DesRR" in name:
+		p0 = -4.76197
+		p1 = 705.997
+	func = TF1("func","[2]*([0]/x^2+[1]/x^4)",10,46)
+	func.SetParameter(0,p0)
+	func.SetParameter(1,p1)
+	func.SetParameter(2,kFac)
+   	func.SetLineWidth(3)
+	print func.Eval(28)
+    	func.SetLineColor(lineColors[name.split("_")[-1]])
+	#GraphSmooth=smoother.SmoothSuper(Graph,"linear")
+   	#GraphSmooth.SetLineWidth(3)
+    	#GraphSmooth.SetLineColor(lineColors[name.split("_")[-1]])
+	
+	#if SPIN2:
+    #		Graph.SetLineColor(colors[name])
+   #		Graph.SetLineWidth(3)
+#		return deepcopy(Graph)
+#	else:	
+	#return deepcopy(GraphSmooth)
+	return deepcopy(func)
+
+
 
 def getXSecCurve(name,kFac):
    	smoother=TGraphSmooth("normal")
@@ -50,14 +95,11 @@ def getXSecs(name,kFac):
 
 lineColors = {"ConLL":ROOT.kRed,"ConLR":ROOT.kRed,"ConRR":ROOT.kRed,"DesLL":ROOT.kBlue,"DesLR":ROOT.kBlue,"DesRR":ROOT.kBlue}
 lineStyles = {"ConLL":1,"ConLR":2,"ConRR":4,"DesLL":1,"DesLR":2,"DesRR":4}
-labels = {"ConLL":"constructive left-left","ConLR":"constructive left-right","ConRR":"constructive right-right","DesLL":"destructive left-left","DesLR":"destructive left-right","DesRR":"destructive right-right"}
+labels = {"ConLL":"CI #rightarrow ll, constructive left-left","ConLR":"CI #rightarrow ll, constructive left-right","ConRR":"CI #rightarrow ll, constructive right-right","DesLL":"destructive left-left","DesLR":"destructive left-right","DesRR":"destructive right-right"}
 
 
 
 def printPlots(canvas,name):
-	import os
-	if not os.path.exists('plots'):
-    		os.makedirs('plots')
     	canvas.Print('plots/'+name+".png","png")
     	canvas.Print('plots/'+name+".pdf","pdf")
     	canvas.SaveSource('plots/'+name+".C","cxx")
@@ -74,10 +116,10 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	observedx=[]
     	observedy=[]
     	obsLimits={}
-	xSecs = getXSecs("CI_%s"%interference,1.3)
+	xSecs = getFittedXSecCurve("CI_%s"%interference,1.3)
     	for entry in fileObs:
         	massPoint=float(entry.split()[0])
-        	limitEntry=float(entry.split()[1])*xSecs[int(float(entry.split()[0]))]
+        	limitEntry=float(entry.split()[1])*xSecs.Eval(int(float(entry.split()[0])))
         	if massPoint not in obsLimits: obsLimits[massPoint]=[]
         	obsLimits[massPoint].append(limitEntry)
     	if printStats: print "len obsLimits:", len(obsLimits)
@@ -95,7 +137,7 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     		obsLimits2={}
     		for entry in fileObs2:
         		massPoint=float(entry.split()[0])
-        		limitEntry=float(entry.split()[1])*xSecs[int(float(entry.split()[0]))]
+        		limitEntry=float(entry.split()[1])*xSecs.Eval(int(float(entry.split()[0])))
         		if massPoint not in obsLimits2: obsLimits2[massPoint]=[]
         		obsLimits2[massPoint].append(limitEntry)
     		if printStats: print "len obsLimits:", len(obsLimits2)
@@ -118,7 +160,7 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	expected2SigHigh=[]
     	for entry in fileExp:
         	massPoint=float(entry.split()[0])
-        	limitEntry=float(entry.split()[1])*xSecs[int(float(entry.split()[0]))]
+        	limitEntry=float(entry.split()[1])*xSecs.Eval(int(float(entry.split()[0])))
         	if massPoint not in limits: limits[massPoint]=[]
         	limits[massPoint].append(limitEntry)
 
@@ -180,9 +222,9 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	if printStats: print "xPoints: ",xPoints
     	if printStats: print "exp1Sig: ",exp1Sig
     	GraphErr2Sig=TGraphAsymmErrors(len(xPoints),xPoints2,exp2Sig)
-    	GraphErr2Sig.SetFillColor(ROOT.kYellow+1)
+    	GraphErr2Sig.SetFillColor(ROOT.kOrange)
     	GraphErr1Sig=TGraphAsymmErrors(len(xPoints),xPoints,exp1Sig)
-    	GraphErr1Sig.SetFillColor(ROOT.kGreen)
+    	GraphErr1Sig.SetFillColor(ROOT.kGreen+1)
 
     	cCL=TCanvas("cCL", "cCL",0,0,800,500)
     	gStyle.SetOptStat(0)
@@ -253,24 +295,24 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     		GraphObs2.SetLineWidth(3)
   
 	xSecCurves = []
-	xSecCurves.append(getXSecCurve("CI_%s"%interference,1.3)) 
+	xSecCurves.append(getFittedXSecCurve("CI_%s"%interference,1.3)) 
 
 	#Draw the graphs:
 	plotPad.SetLogy()
-	DummyGraph=TH1F("DummyGraph","",100,10,34)
+	DummyGraph=TH1F("DummyGraph","",100,10,46)
     	DummyGraph.GetXaxis().SetTitle("#Lambda [TeV]")
     	if chan=="mumu":
         	DummyGraph.GetYaxis().SetTitle("95% CL limit on #sigma(pp#rightarrow CI+X#rightarrow#mu#mu +X) [pb]")
     	elif chan=="elel":
         	DummyGraph.GetYaxis().SetTitle("95% CL limit on #sigma(pp#rightarrow CI+X#rightarrowee +X) [pb]")
     	elif chan=="elmu":
-        	DummyGraph.GetYaxis().SetTitle("95% CL limit on #sigma(pp#rightarrow CI+X#rightarrowfont[12]{ll}) [pb]")
+        	DummyGraph.GetYaxis().SetTitle("95% CL limit on #sigma(pp#rightarrow CI+X#rightarrow#font[12]{ll}) [pb]")
 
     	gStyle.SetOptStat(0)
-	DummyGraph.GetXaxis().SetRangeUser(10,34)
+	DummyGraph.GetXaxis().SetRangeUser(10,46)
 
-    	DummyGraph.SetMinimum(1e-3)
-    	DummyGraph.SetMaximum(5)
+    	DummyGraph.SetMinimum(5e-4)
+    	DummyGraph.SetMaximum(1)
     	DummyGraph.GetXaxis().SetLabelSize(0.04)
     	DummyGraph.GetXaxis().SetTitleSize(0.045)
    	DummyGraph.GetXaxis().SetTitleOffset(1.)
@@ -292,11 +334,12 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
 		GraphObs2.SetLineStyle(ROOT.kDashed)
 		GraphObs2.Draw("plsame")
     	for curve in xSecCurves:
-        	curve.Draw("lsame")
-        	#curve.Draw("ALP")
+		print curve.Eval(28) 
+        	#curve.Draw()
+        	curve.Draw("sameR")
 
 
-    	plCMS=TPaveLabel(.12,.81,.22,.88,"CMS","NBNDC")
+    	plCMS=TPaveLabel(.15,.81,.25,.88,"CMS","NBNDC")
 #plCMS.SetTextSize(0.8)
     	plCMS.SetTextAlign(12)
     	plCMS.SetTextFont(62)
@@ -306,14 +349,14 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     
     	plCMS.Draw()
 
-    	plPrelim=TPaveLabel(.12,.76,.25,.82,"Preliminary","NBNDC")
+    	plPrelim=TPaveLabel(.15,.76,.275,.82,"Supplementary","NBNDC")
     	plPrelim.SetTextSize(0.6)
     	plPrelim.SetTextAlign(12)
     	plPrelim.SetTextFont(52)
     	plPrelim.SetFillColor(0)
     	plPrelim.SetFillStyle(0)
     	plPrelim.SetBorderSize(0)
-    	plPrelim.Draw()
+    	#plPrelim.Draw()
 
 
     	cCL.SetTickx(1)
@@ -322,7 +365,7 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	cCL.Update()
     
     	#leg=TLegend(0.65,0.65,0.87,0.87,"","brNDC")   
-    	leg=TLegend(0.540517,0.623051,0.834885,0.878644,"","brNDC")   
+    	leg=TLegend(0.440517,0.523051,0.834885,0.878644,"","brNDC")   
 #    	leg=TLegend(0.55,0.55,0.87,0.87,"","brNDC")   
     	leg.SetTextSize(0.032)
 	if not obs2 == "":
@@ -335,36 +378,35 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	
 	else:
 		if not EXPONLY:
-			leg.AddEntry(GraphObs,"Observed 95% CL limit","l")
-    		leg.AddEntry(GraphExp,"Expected 95% CL limit, median","l")
+			leg.AddEntry(GraphObs,"Obs. 95% CL limit","l")
+    		leg.AddEntry(GraphExp,"Exp. 95% CL limit, median","l")
         	if (FULL):
-   		     	leg.AddEntry(GraphErr1Sig,"Expected 95% CL limit, 1 s.d.","f")
-        		leg.AddEntry(GraphErr2Sig,"Expected 95% CL limit, 2 s.d.","f")
+   		     	leg.AddEntry(GraphErr1Sig,"Exp. (68%)","f")
+        		leg.AddEntry(GraphErr2Sig,"Exp. (95%)","f")
 
 
-    	leg1=TLegend(0.665517,0.483051,0.834885,0.623051,"","brNDC")
-	leg1.SetTextSize(0.032)
-	
-        leg1.AddEntry(xSecCurves[0],labels[interference],"l")
-
-    	leg.SetLineWidth(0)
+        leg.AddEntry(xSecCurves[0],labels[interference],"l")
+     	leg.SetLineWidth(0)
     	leg.SetLineStyle(0)
     	leg.SetFillStyle(0)
     	leg.SetLineColor(0)
     	leg.Draw("hist")
 
-    	leg1.SetLineWidth(0)
-    	leg1.SetLineStyle(0)
-    	leg1.SetFillStyle(0)
-    	leg1.SetLineColor(0)
-    	leg1.Draw("hist")
-	if "Moriond" in output:
+ 	if "Moriond" in output:
          	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
         	elif (chan=="elel"):
             		plLumi=TPaveLabel(.65,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+
+ 	elif "2017" in output:
+         	if (chan=="mumu"): 
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"42.1 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+        	elif (chan=="elel"):
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee)","NBNDC")
+        	elif (chan=="elmu"):            		
+			plLumi=TPaveLabel(.4,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee) + 42.1 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
 	else:
  	      	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")

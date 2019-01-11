@@ -76,11 +76,40 @@ def getChannelBlock(backgrounds,inputs,signalScale,chan):
 		result+= " %.2f"%inputs["bkg%s"%background]
 	return result
  
+correlations = {
+"xSecOther":2,
+"jets":2,
+"zPeak":1,
+"trig":1,
+"massScale":0,
+"stats":0,
+"res":0,
+"pdf":2,
+"ID":0,
+"lumi":2,
+"PU":2
+}
+
 
 
 def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
+
+	result = ""
+	if correlate:
+		if correlations[uncert] == 0:
+			name = "%s_%s"%(uncert,channel)
+		elif correlations[uncert] == 1:
+			if "dimuon" in channel:
+				name = "%s_dimuon"%uncert
+			else:
+				name = "%s_dielectron"%uncert
+		elif correlations[uncert] == 2:
+			name = uncert	
+	else:
+		name = "%s_%s"%(uncert,channel)
+
 	if uncert == "xSecOther":
-		result = "xSecOther lnN - "
+		result = "%s lnN - "%name
 	        for background in backgrounds:
 			if background == "Other":
         			result += "  %.3f  "%value
@@ -88,8 +117,9 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
         			result += " - "
 		result += "\n"		
 
+
 	if uncert == "jets":
-		result = "jets lnN - "
+		result = "%s lnN - "%name
 	        for background in backgrounds:
 			if background == "Jets":
         			result += "  %.3f  "%value
@@ -100,7 +130,7 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 
 	if uncert == "zPeak":
-		result = "zPeak lnN %.3f"%value
+		result = "%s lnN -"%name
 	        for background in backgrounds:
 			if background == "Jets":
         			result += "  -  "
@@ -111,7 +141,7 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 
 	if uncert == "trig":
-		result = "trig lnN %.3f"%value
+		result = "%s lnN %.3f"%(name,value)
 	        for background in backgrounds:
 			if background == "Jets":
         			result += "  -  "
@@ -120,24 +150,25 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 		result += "\n"		
 
 	if uncert == "massScale":
-		if correlate:
-			name = "scale"
+		if yields["sigScale"][1] > 1.:
+			result = "%s  lnN %.3f/%.3f"%(name,yields["sigScale"][0],yields["sigScale"][1])
 		else:
-			name = "scale_%s"%channel
-		result = "%s  lnN %.3f"%(name,yields["sigScale"])
+			result = "%s  lnN %.3f"%(name,yields["sigScale"][0])
 	        for background in backgrounds:
 			if background == "Jets":
         			result += "  -  "
 			else:
-        			result += "  %.3f  "%yields["bkg%sScale"%background]
+				if "dimuon" in channel: 
+					if yields["bkg%sScale"%background][0] > 1.: 
+        					result += "  %.3f  "%(yields["bkg%sScale"%background][0])
+        				else:	
+						result += "  %.3f  "%(1./yields["bkg%sScale"%background][0])
+        			else:	
+					result += "  %.3f/%.3f  "%(yields["bkg%sScale"%background][0],yields["bkg%sScale"%background][1])
 	
 		result += "\n"		
 
 	if uncert == "stats":
-		if correlate:
-			name = "stats"
-		else:
-			name = "stats_%s"%channel
 		result = "%s  lnN %.3f"%(name,yields["sigStats"])
 	        for background in backgrounds:
 			if background == "Jets":
@@ -148,25 +179,8 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 		result += "\n"		
 
 
-	if uncert == "res":
-		if correlate:
-			name = "res"
-		else:
-			name = "res_%s"%channel
-		result = "%s  lnN %.3f"%(name,yields["sigRes"])
-	        for background in backgrounds:
-			if background == "Jets":
-        			result += "  -  "
-       			else:
-        			result += "  %.3f  "%yields["bkg%sRes"%background]
-	
-		result += "\n"		
 
 	if uncert == "pdf":
-		if correlate:
-			name = "pdf"
-		else:
-			name = "pdf_%s"%channel
 		result = "%s  lnN %.3f"%(name,yields["sigPDF"])
 	        for background in backgrounds:
 			if background == "Jets":
@@ -174,27 +188,38 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
         		else:
         			result += "  %.3f  "%yields["bkg%sPDF"%background]
 		result += "\n"		
-	if uncert == "ID":
-		if correlate:
-			name = "ID"
-		else:
-			name = "ID_%s"%channel
-		result = "%s  lnN %.3f"%(name,yields["sigID"])
+	if uncert == "PU" and "electron" in channel:
+		result = "%s  lnN %.3f/%.3f"%(name,yields["sigPU"][0],yields["sigPU"][1])
 	        for background in backgrounds:
 			if background == "Jets":
         			result += "  -  "	
         		else:
-        			result += "  %.3f  "%yields["bkg%sID"%background]
+				result += "  %.3f/%.3f  "%(yields["bkg%sPU"%background][0],yields["bkg%sPU"%background][1])
 		result += "\n"		
 
+	if "muon" in channel:
+		if uncert == "ID":
+			result = "%s  lnN %.3f"%(name,yields["sigID"])
+		        for background in backgrounds:
+				if background == "Jets":
+        				result += "  -  "	
+        			else:
+        				result += "  %.3f  "%yields["bkg%sID"%background]
+			result += "\n"		
+		if uncert == "res":
+			result = "%s  lnN %.3f"%(name,yields["sigRes"])
+		        for background in backgrounds:
+				if background == "Jets":
+        				result += "  -  "
+       				else:
+        				result += "  %.3f  "%yields["bkg%sRes"%background]
+	
+			result += "\n"		
+
 	if uncert == "lumi":
-		name = "lumi"
-		result = "lumi lnN %.3f"%value
+		result = "%s lnN %.3f"%(name,value)
 	        for background in backgrounds:
-			if background == "Jets":
-        			result += "  -  "
-        		else:	
-				result += "  %.3f  "%value
+			result += "  -  "
 		result += "\n"		
 
 

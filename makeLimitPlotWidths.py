@@ -75,7 +75,7 @@ def createExpGraph(exp):
     		#fill lists:
         	expectedx.append(massPoint)
         	expectedy.append(limits[massPoint][medianNr])
-        
+	print len(expectedx)        
     	expX=numpy.array(expectedx)
     	expY=numpy.array(expectedy)
    	GraphExp=TGraph(len(expX),expX,expY)
@@ -86,6 +86,7 @@ def createExpGraph(exp):
 
 def makeLimitPlot(output,obs,exp,chan,printStats=False):
 
+	fileForHEPData = TFile("plots/"+output+"_forHEPData.root","RECREATE")
 
 	obsLimits = {}
 	
@@ -113,10 +114,12 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
 			width = '0.006'	
 		expLimits[width] = createExpGraph(expFile)	
 
-
-    	cCL=TCanvas("cCL", "cCL",0,0,800,500)
+    	cCL=TCanvas("cCL", "cCL",0,0,600,450)
     	gStyle.SetOptStat(0)
-
+	gStyle.SetPadRightMargin(0.063)
+	gStyle.SetPadLeftMargin(0.14)
+	gStyle.SetPadBottomMargin(0.12)
+	
     	plotPad = ROOT.TPad("plotPad","plotPad",0,0,1,1)
     	plotPad.Draw()	
     	plotPad.cd()
@@ -133,10 +136,10 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
     	for entries in fileZPrime:
         	entry=entries.split()
         	zprimeX.append(float(entry[0]))
-        	zprimeY.append(float(entry[1])*1.3/1928)
+        	zprimeY.append(float(entry[1])/1928)
     	zpX=numpy.array(zprimeX)
     	zpY=numpy.array(zprimeY)
-    	GraphZPrime=TGraph(481,zpX,zpY)
+    	GraphZPrime=TGraph(len(zprimeX),zpX,zpY)
     	GraphZPrimeSmooth=smoother2.SmoothSuper(GraphZPrime,"linear")
     	GraphZPrimeSmooth.SetLineWidth(3)
     	GraphZPrimeSmooth.SetLineColor(ROOT.kGreen+3)
@@ -148,45 +151,56 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
     	for entries in fileZPrimePsi:
         	entry=entries.split()
         	zprimePsiX.append(float(entry[0]))
-        	zprimePsiY.append(float(entry[1])*1.3/1928)
+        	zprimePsiY.append(float(entry[1])/1928)
+
    	zpPsiX=numpy.array(zprimePsiX)
 	zpPsiY=numpy.array(zprimePsiY)
-    	GraphZPrimePsi=TGraph(481,zpPsiX,zpPsiY)
+    	GraphZPrimePsi=TGraph(len(zprimePsiX),zpPsiX,zpPsiY)
     	GraphZPrimePsiSmooth=smoother.SmoothSuper(GraphZPrimePsi,"linear")
    	GraphZPrimePsiSmooth.SetLineWidth(3)
     	GraphZPrimePsiSmooth.SetLineColor(ROOT.kBlue)
 
 #Draw the graphs:
     	plotPad.SetLogy()
-	if "Moriond" in output:
-    		DummyGraph=TH1F("DummyGraph","",100,200,5500)
-    	else:	
-		DummyGraph=TH1F("DummyGraph","",100,400,4500)
+    	DummyGraph=TH1F("DummyGraph","",100,200,5500)
     	DummyGraph.GetXaxis().SetTitle("M [GeV]")
-    	if chan=="mumu":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#mu#mu+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu#mu+X)")
-    	elif chan=="elel":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
-    	elif chan=="elmu":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+	if SPIN2:
+        		DummyGraph.GetYaxis().SetTitle("[#sigma#upoint#font[12]{B}] G_{KK} / #sigma#upoint#font[12]{B}] Z")
+	else:
+        		DummyGraph.GetYaxis().SetTitle("[#sigma#upoint#font[12]{B}] Z' / [#sigma#upoint#font[12]{B}] Z")
+
+#	if SPIN2:
+#	    	if chan=="mumu":
+#       	 		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrow#mu^{+}#mu^{-}+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu^{+}#mu^{-}+X)")
+#    		elif chan=="elel":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
+#    		elif chan=="elmu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+#	else:
+#    		if chan=="mumu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#mu^{+}#mu^{-}+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu^{+}#mu^{-}+X)")
+#    		elif chan=="elel":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
+#    		elif chan=="elmu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+
+
 
     	gStyle.SetOptStat(0)
-	if "Moriond" in output:
-    		DummyGraph.GetXaxis().SetRangeUser(200,5500)
-    	else:	
-		DummyGraph.GetXaxis().SetRangeUser(400,4500)
+    	DummyGraph.GetXaxis().SetRangeUser(200,5500)
 
     	DummyGraph.SetMinimum(1e-8)
-    	DummyGraph.SetMaximum(4e-4)
-    	DummyGraph.GetXaxis().SetLabelSize(0.04)
-    	DummyGraph.GetXaxis().SetTitleSize(0.045)
-   	DummyGraph.GetXaxis().SetTitleOffset(1.)
-    	DummyGraph.GetYaxis().SetLabelSize(0.04)
-    	DummyGraph.GetYaxis().SetTitleSize(0.045)
-    	DummyGraph.GetYaxis().SetTitleOffset(1.)
+    	DummyGraph.SetMaximum(3e-4)
+    	DummyGraph.GetXaxis().SetLabelSize(0.055)
+    	DummyGraph.GetXaxis().SetTitleSize(0.055)
+   	DummyGraph.GetXaxis().SetTitleOffset(1.05)
+    	DummyGraph.GetYaxis().SetLabelSize(0.055)
+    	DummyGraph.GetYaxis().SetTitleSize(0.055)
+    	DummyGraph.GetYaxis().SetTitleOffset(1.3)
+
     	DummyGraph.Draw()
 
-    	plCMS=TPaveLabel(.12,.81,.22,.88,"CMS","NBNDC")
+    	plCMS=TPaveLabel(.16,.76,.27,.83,"CMS","NBNDC")
 #plCMS.SetTextSize(0.8)
     	plCMS.SetTextAlign(12)
     	plCMS.SetTextFont(62)
@@ -195,27 +209,48 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
     
     	plCMS.Draw()
 
-    	plPrelim=TPaveLabel(.12,.76,.25,.82,"Preliminary","NBNDC")
+    	plPrelim=TPaveLabel(.16,.76,.27,.82,"Preliminary","NBNDC")
     	plPrelim.SetTextSize(0.6)
     	plPrelim.SetTextAlign(12)
     	plPrelim.SetTextFont(52)
     	plPrelim.SetFillColor(0)
     	plPrelim.SetBorderSize(0)
-    	plPrelim.Draw()
+#    	plPrelim.Draw()
 
-    	leg=TLegend(0.430517,0.623051,0.734885,0.878644,"","brNDC")   
+    	leg=TLegend(0.420517,0.7,0.85,0.878644,"","brNDC")   
+    	legWidth=TLegend(0.625,0.5,0.9,0.7,"width","brNDC")   
 #    	leg=TLegend(0.55,0.55,0.87,0.87,"","brNDC")   
-    	leg.SetTextSize(0.032)
+    	leg.SetTextSize(0.0425)
+    	legWidth.SetTextSize(0.0425)
 	colors = {'01':ROOT.kBlue,'03':ROOT.kRed,'05':ROOT.kGreen+3,'10':ROOT.kOrange}
+#	for width in sorted(obsLimits):
+#		obsGraph = obsLimits[width]
+#		if colors.has_key(width):
+#			obsGraph.SetLineColor(colors[width])
+#		obsGraph.Draw("lsame")
+#		if width == '0.006':
+#			leg.AddEntry(obsGraph,"Observed 95% CL limit width 0.6%","l")
+#		else:	
+#			leg.AddEntry(obsGraph,"Observed 95%% CL limit width %d%%"%int(width),"l")
+#
+#	for width  in sorted(expLimits):
+#		expGraph = expLimits[width]
+#		if colors.has_key(width):
+#			expGraph.SetLineColor(colors[width])
+#		expGraph.Draw("lsame")
+#		if width == '0.006':
+#			leg.AddEntry(expGraph,"Expected 95% CL limit width 0.6%, median","l")
+#		else:	
+#			leg.AddEntry(expGraph,"Expected 95%% CL limit width %d%%, median"%(int(width)),"l")
+
+	
 	for width in sorted(obsLimits):
 		obsGraph = obsLimits[width]
 		if colors.has_key(width):
 			obsGraph.SetLineColor(colors[width])
 		obsGraph.Draw("lsame")
 		if width == '0.006':
-			leg.AddEntry(obsGraph,"Observed 95% CL limit width 0.6%","l")
-		else:	
-			leg.AddEntry(obsGraph,"Observed 95%% CL limit width %d%%"%int(width),"l")
+			leg.AddEntry(obsGraph,"Obs. 95% CL limit","l")
 
 	for width  in sorted(expLimits):
 		expGraph = expLimits[width]
@@ -223,20 +258,42 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
 			expGraph.SetLineColor(colors[width])
 		expGraph.Draw("lsame")
 		if width == '0.006':
-			leg.AddEntry(expGraph,"Expected 95% CL limit width 0.6%, median","l")
+			leg.AddEntry(expGraph,"Exp. 95% CL limit, median","l")
+	for width in sorted(obsLimits):
+		obsGraph = obsLimits[width]
+		if colors.has_key(width):
+			obsGraph.SetLineColor(colors[width])
+		if width == '0.006':
+			legWidth.AddEntry(obsGraph,"0.6%","l")
 		else:	
-			leg.AddEntry(expGraph,"Expected 95%% CL limit width %d%%, median"%(int(width)),"l")
+			legWidth.AddEntry(obsGraph,"%d%%"%int(width),"l")
 
-#    	if not SPIN2:
-#        	GraphZPrimeSmooth.Draw("lsame")
-#        	GraphZPrimePsiSmooth.Draw("lsame")
+
+    	if not SPIN2:
+        	GraphZPrimeSmooth.Draw("lsame")
+        	GraphZPrimePsiSmooth.Draw("lsame")
+
+	leg1=TLegend(0.625,0.35,0.825,0.5,"","brNDC")
+	leg1.SetTextSize(0.0375)
+	leg1.AddEntry(GraphZPrimeSmooth,"Z'_{SSM} (width 2.97%)","l")	
+	leg1.AddEntry(GraphZPrimePsiSmooth,"Z'_{#Psi} (width 0.53%)","l")	
+	
+    	leg1.SetLineWidth(0)
+    	leg1.SetLineStyle(0)
+    	leg1.SetLineColor(0)
+    	leg1.SetFillStyle(0)
+    	leg1.SetBorderSize(0)
+
+	leg1.Draw()
 
     	cCL.SetTickx(1)
     	cCL.SetTicky(1)
     	cCL.RedrawAxis()
     	cCL.Update()
     
-  	
+    	#plCMS.Draw()
+  	plotPad.SetTicks(1,1)
+	plotPad.RedrawAxis()	
 
 	
 
@@ -244,13 +301,21 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
     	leg.SetLineStyle(0)
     	leg.SetLineColor(0)
     	leg.Draw("hist")
+    	legWidth.SetLineWidth(0)
+    	legWidth.SetLineStyle(0)
+    	legWidth.SetLineColor(0)
+    	legWidth.SetFillStyle(0)
+	legWidth.SetNColumns(2)
+    	legWidth.Draw("hist")
+
+
 	if "Moriond" in output:
          	if (chan=="mumu"): 
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
         	elif (chan=="elel"):
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
-            		plLumi=TPaveLabel(.4,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
 	else:
  	      	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
@@ -259,7 +324,6 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"12.4 fb^{-1} (13 TeV, ee) + 13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
 
-
     	plLumi.SetTextSize(0.5)
     	plLumi.SetTextFont(42)
     	plLumi.SetFillColor(0)
@@ -267,8 +331,19 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False):
     	plLumi.Draw()
     
 
+	plotPad.RedrawAxis()
+	for width in sorted(obsLimits):
+		obsGraph = obsLimits[width]
+		obsGraph.SetName("graphObs%s"%width)
+		obsGraph.Write("graphObs%s"%width)
+	for width in sorted(expLimits):
+		expGraph = expLimits[width]
+		expGraph.SetName("graphExp%s"%width)
+		expGraph.Write("graphExp%s"%width)
 
-	
+
+   	fileForHEPData.Write()
+	fileForHEPData.Close() 
 
 
     

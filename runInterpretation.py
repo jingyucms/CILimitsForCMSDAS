@@ -6,47 +6,9 @@ import subprocess
 
 supportedResources = ["Purdue","FNAL"]
 
-condorTemplateFNAL='''
-universe = vanilla
-Executable = ../submission/CILimits_FNAL.sh
-Requirements = OpSys == "LINUX"&& (Arch != "DUMMY" )
-Should_Transfer_Files = NO
-Output = sleep_$(Cluster)_$(Process).stdout
-Error = sleep_$(Cluster)_$(Process).stderr
-Log = sleep_$(Cluster)_$(Process).log
-notify_user = jschulte@cern.ch
-x509userproxy = $ENV(X509_USER_PROXY)
-Arguments = "%s"
-Queue 1
-'''
+def getRange(mass,CI=False,CILambda=False):
 
-
-
-def getRange(mass,DM=False,CI=False):
-	if DM:
-		if 120 <= mass <= 200:
-			return 0.1
-		elif 200 <= mass <= 300:
-			return 0.1
-		elif 300 <= mass <= 400:
-			return 0.1
-		elif 400 <= mass <= 500:
-			return 1
-		elif 500 < mass <= 600:
-			return 1
-		elif 600 < mass <= 700:
-			return 5
-		elif 700 < mass <= 800:
-			return 10
-		elif 800 < mass <= 1000:
-			return 10
-		elif 1000 < mass <= 2000:
-			return 20
-		else:
-			return 40
-
-
-	elif CI:
+	if CI and not CILambda:
 		#return 20
 		#if 0 <= mass <= 200:
 		#	return 5
@@ -59,14 +21,34 @@ def getRange(mass,DM=False,CI=False):
 		if mass == 28:
 			return 10
 		if mass == 34:
+			return 10
+		if mass == 40:
 			return 20
+		if mass == 46:
+			return 30
+	elif CI and CILambda:
+		#return 20
+		#if 0 <= mass <= 200:
+		#	return 5
+		if mass == 10:
+			return 50
+		if mass == 16:
+			return 50
+		if mass == 22:
+			return 50
+		if mass == 28:
+			return 50
+		if mass == 34:
+			return 50
+		if mass == 40:
+			return 50
 	else:
 		if 120 <= mass <= 200:
 			return 200000
 		elif 200 <= mass <= 300:
-			return 10000
+			return 50000
 		elif 300 <= mass <= 400:
-			return 5000
+			return 10000
 		elif 400 <= mass <= 500:
 			return 500
 		elif 500 < mass <= 600:
@@ -81,7 +63,34 @@ def getRange(mass,DM=False,CI=False):
 			return 20
 		else:
 			return 10
+def prepareToys(args,config,outDir):
 
+	if args.CI:
+		if args.Lambda > 0:
+			Lambdas = [args.Lambda]
+		else:
+			Lambdas = config.lambdas
+		for Lambda in Lambdas:
+			for interference in config.interferences:
+                                print "generate toys for Lambda %d and model %s"%(Lambda,interference)
+                                if len(config.channels) == 1:
+                                        cardName = outDir + "/" + config.channels[0] + "_%d_%s"%(Lambda,interference) + ".txt"
+                                else:
+                                        cardName = outDir + "/" + args.config + "_combined" + "_%d_%s"%(Lambda,interference) + ".txt"
+               			import random
+				number = random.randint(0,100000) 
+                                subCommand = ["combine","-M","GenerateOnly","--saveToys","%s"%cardName, "-n" "%s_%d"%(args.config,number) , "-m","%d"%Lambda,"-t","%d"%config.exptToys]
+                                print subCommand
+                                subprocess.call(subCommand)
+				#if args.workDir == "":
+				subprocess.call(["mv","higgsCombine%s_%d.GenerateOnly.mH%d.123456.root"%(args.config,number,Lambda),outDir+"/higgsCombine%s%s_%s.GenerateOnly.mH%d.123456.root"%(args.config,args.tag,interference,Lambda)])
+				#else:	
+				#	subprocess.call(["mv",args.workDir+"/higgsCombine%s.GenerateOnly.mH%d.123456.root"%(args.config,Lambda),outDir+"/higgsCombine%s%s_%s.GenerateOnly.mH%d.123456.root"%(args.config,args.tag,interference,Lambda)])
+				
+				
+	else:
+		print "not implemented for Z'"
+		sys.exit()
 
 def runLocalLimits(args,config,outDir,cardDir,binned):
 
@@ -110,33 +119,38 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
 				else:
 					cardName = cardDir + "/" + args.config + "_combined" + "_%d_%s"%(Lambda,interference) + ".txt"
 		
-				if args.usePhysicsModel:
+				if args.usePhysicsModel or args.int:
 					cardName = cardName.split(".")[0]+".root"
 
 				numToys = config.numToys
 				if args.expected:
 					numToys = 1
 				if not args.frequentist:
-					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(Lambda,args.DM,args.CI)]
+					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(Lambda,args.CI,args.usePhysicsModel)]
 				else:
-					subCommand = ["combine","-M","HybridNew","--frequentist","--testStat","LHC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda,"--rMax","%d"%getRange(Lambda,args.DM,args.CI), "--rMin", "-10"]
+					subCommand = ["combine","-M","HybridNew","--frequentist","--testStat","LHC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda,"--rMax","%d"%getRange(Lambda,args.CI,args.usePhysicsModel), "--rMin", "0"]
 				if args.expected: 
 					subCommand.append("-t")
 					subCommand.append("%d"%config.exptToys)
-		
+					subCommand.append("-s")
+					subCommand.append("0")
+					if args.int:
+						subCommand.append("--toysFile="+cardDir+"_expGen"+"/higgsCombine%s%s_%s.GenerateOnly.mH%d.123456.root"%(args.config,args.tag,interference,Lambda))
+							
 				if args.lower:
 					subCommand.append("--saveChain")
-		
+				print subCommand	
 				subprocess.call(subCommand)
 
 				if args.expected:	
-					resultFile = "higgsCombine%s.%s.mH%d.123456.root"%(args.config,algo,Lambda)
+					resultFile = "higgsCombine%s.%s.mH%d.0.root"%(args.config,algo,Lambda)
 				else:
 					resultFile = "higgsCombine%s.%s.mH%d.root"%(args.config,algo,Lambda)
 				
 				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s%s_%s.%s.mH%d.root"%(outDir,args.config,args.tag,interference,algo,Lambda)])
 	
 				if args.lower:
+					resultFile = "higgsCombine%s%s_%s.%s.mH%d.root"%(args.config,args.tag,interference,algo,Lambda)
 					from tools import convertToLowerLimit
 					rName = "r"
 					average = True
@@ -144,7 +158,7 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
 						rName = "Lambda"
 					if args.expected:
 						average = False
-					limits = convertToLowerLimit(outDir+"/"+resultFile,getRange(Lambda,args.DM),rName,average)
+					limits = convertToLowerLimit(outDir+"/"+resultFile,getRange(Lambda,args.CI,args.usePhysicsModel),rName,average)
 					
 					outFile = resultFile.split(".root")[0]+".txt"
 					thefile = open(outDir+"/"+outFile, 'w')
@@ -156,27 +170,31 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
   		else:
         	        masses = config.masses
 
-		for mass in masses:
-			for interference in config.interferences:
+		for massRange in masses:
+			mass = massRange[1]
+			while mass <= massRange[2]:
 				print "calculate limit for mass %d"%mass
 				if len(config.channels) == 1:
-					cardName = cardDir + "/" + config.channels[0] + "_%d_%s"%(mass,interference) + ".txt"
+					cardName = cardDir + "/" + config.channels[0] + "_%d"%(mass) + ".txt"
 				else:
-					cardName = cardDir + "/" + args.config + "_combined" + "_%d_%s"%(mass,interference) + ".txt"
+					cardName = cardDir + "/" + args.config + "_combined" + "_%d"%(mass) + ".txt"
 		
 				if binned:
 					cardName = cardName.split(".")[0] + "_binned.txt"
-					numToys = config.numToys
+				numToys = config.numToys
 				if args.expected:
 					numToys = 1
-	
+					if expToys > -1:
+						numToys = expToys
 				if not args.frequentist:
-					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(mass,args.DM,args.CI)]
+					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(mass,args.CI,args.usePhysicsModel)]
 				else:
-					subCommand = ["combine","-M","HybridNew","--frequentist","--testStat","LHC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass,"--rMax","%d"%getRange(mass,args.DM,args.CI), "--rMin", "-10"]
+					subCommand = ["combine","-M","HybridNew","--frequentist","--testStat","LHC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass,"--rMax","%d"%getRange(mass,args.CI,args.usePhysicsModel), "--rMin", "-10"]
 				if args.expected: 
 					subCommand.append("-t")
 					subCommand.append("%d"%config.exptToys)
+					subCommand.append("-s")
+					subCommand.append("0")
 		
 				if args.lower:
 					subCommand.append("--saveChain")
@@ -187,12 +205,13 @@ def runLocalLimits(args,config,outDir,cardDir,binned):
 				subprocess.call(subCommand)
 
 				if args.expected:	
-					resultFile = "higgsCombine%s.%s.mH%d.123456.root"%(args.config,algo,mass)
+					resultFile = "higgsCombine%s.%s.mH%d.0.root"%(args.config,algo,mass)
 				else:
 					resultFile = "higgsCombine%s.%s.mH%d.root"%(args.config,algo,mass)
 				
-				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s.%s.mH%d_%s.root"%(outDir,args.config,algo,mass,interference)])
+				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s.%s.mH%d.root"%(outDir,args.config,algo,mass)])
 
+                        	mass += massRange[0]
 def runLocalSignificance(args,config,outDir,cardDir,binned):
 
 	if args.hybrid or args.frequentist:
@@ -219,9 +238,9 @@ def runLocalSignificance(args,config,outDir,cardDir,binned):
                        	elif args.hybrid:
 				subCommand = ["combine","-M","HybridNew","%s"%cardName, "-n" "%s"%(args.config) , "-m","%d"%mass, "--signif" , "--pvalue","--testStat","LHC","-T","10000"]
 			elif args.plc:	
-				subCommand = ["combine","-M","ProfileLikelihood","%s"%cardName, "-n" "%s"%(args.config) , "-m","%d"%mass, "--signif" , "--pvalue", "--usePLC","--rMax","%d"%getRange(mass,args.DM)]
+				subCommand = ["combine","-M","ProfileLikelihood","%s"%cardName, "-n" "%s"%(args.config) , "-m","%d"%mass, "--signif" , "--pvalue", "--usePLC","--rMax","%d"%getRange(mass,args.CI,args.usePhysicsModel)]
 			else:
-				subCommand = ["combine","-M","ProfileLikelihood","%s"%cardName, "-n" "%s"%(args.config) , "-m","%d"%mass, "--signif" , "--pvalue","--uncapped","1","--rMax","%d"%getRange(mass,args.DM)]
+				subCommand = ["combine","-M","ProfileLikelihood","%s"%cardName, "-n" "%s"%(args.config) , "-m","%d"%mass, "--signif" , "--pvalue","--uncapped","1","--rMax","%d"%getRange(mass,args.CI,args.usePhysicsModel)]
 			for library in config.libraries:
                                 subCommand.append("--LoadLibrary")
                                 subCommand.append("userfuncs/%s"%library)
@@ -234,6 +253,93 @@ def runLocalSignificance(args,config,outDir,cardDir,binned):
                                 resultFile = "higgsCombine%s.%s.mH%d.root"%(args.config,algo,mass)
                         subprocess.call(["mv","%s"%resultFile,"%s"%outDir])
                         mass += massRange[0]
+
+def runBiasStudy(args,config,outDir,cardDir,binned):
+
+	algo = "FitDiagnostics"
+
+	if args.mass > 0 and not args.singlebin:
+      		masses = [[5,args.mass,args.mass]]
+        elif args.CI:
+                masses = config.lambdas
+  	else:
+                masses = config.masses
+
+	if args.CI:
+		if args.Lambda > 0:
+			Lambdas = [args.Lambda]
+		else:
+			Lambdas = config.lambdas
+		for Lambda in Lambdas:
+			for interference in config.interferences:
+				print "perform bias study for Lambda %d and model %s"%(Lambda,interference)
+				if len(config.channels) == 1:
+					cardName = cardDir + "/" + config.channels[0] + "_%d_%s"%(Lambda,interference) + ".txt"
+				else:
+					cardName = cardDir + "/" + args.config + "_combined" + "_%d_%s"%(Lambda,interference) + ".txt"
+		
+				if args.usePhysicsModel or args.int:
+					cardName = cardName.split(".")[0]+".root"
+
+				numToys = config.numToys
+				subCommand = ["combine","-M",algo,"%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda, "-t", "1000", "--expectSignal","0","--rMax","100","--rMin","-100","--forceRecreateNLL"]
+		
+				subprocess.call(subCommand)
+
+				resultFile = "higgsCombine%s.%s.mH%d.123456.root"%(args.config,algo,Lambda)
+				
+				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s%s_%s.%s.mH%d_mu0.root"%(outDir,args.config,args.tag,interference,algo,Lambda)])
+
+				subCommand = ["combine","-M",algo,"%s"%cardName, "-n" "%s"%args.config , "-m","%d"%Lambda, "-t", "1000", "--expectSignal","1","--rMax","100","--rMin","-100","--forceRecreateNLL"]
+		
+				subprocess.call(subCommand)
+
+				resultFile = "higgsCombine%s.%s.mH%d.123456.root"%(args.config,algo,Lambda)
+				
+				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s%s_%s.%s.mH%d_mu1.root"%(outDir,args.config,args.tag,interference,algo,Lambda)])
+	else:
+		if args.mass > 0:
+      			masses = [[5,args.mass,args.mass]]
+  		else:
+        	        masses = config.masses
+
+		for mass in masses:
+			for interference in config.interferences:
+				print "calculate bias study for mass %d"%mass
+				if len(config.channels) == 1:
+					cardName = cardDir + "/" + config.channels[0] + "_%d_%s"%(mass,interference) + ".txt"
+				else:
+					cardName = cardDir + "/" + args.config + "_combined" + "_%d_%s"%(mass,interference) + ".txt"
+		
+				if binned:
+					cardName = cardName.split(".")[0] + "_binned.txt"
+					numToys = config.numToys
+				if args.expected:
+					numToys = 1
+	
+				if not args.frequentist:
+					subCommand = ["combine","-M","MarkovChainMC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass, "-i", "%d"%config.numInt, "--tries", "%d"%numToys ,  "--prior","flat","--rMax","%d"%getRange(mass,args.DM,args.CI,args.usePhysicsModel)]
+				else:
+					subCommand = ["combine","-M","HybridNew","--frequentist","--testStat","LHC","%s"%cardName, "-n" "%s"%args.config , "-m","%d"%mass,"--rMax","%d"%getRange(mass,args.DM,args.CI,args.usePhysicsModel), "--rMin", "-10"]
+				if args.expected: 
+					subCommand.append("-t")
+					subCommand.append("%d"%config.exptToys)
+		
+				if args.lower:
+					subCommand.append("--saveChain")
+		
+				for library in config.libraries:		
+					subCommand.append("--LoadLibrary")
+					subCommand.append("userfuncs/%s"%library)
+				subprocess.call(subCommand)
+
+				if args.expected:	
+					resultFile = "higgsCombine%s.%s.mH%d.123456.root"%(args.config,algo,mass)
+				else:
+					resultFile = "higgsCombine%s.%s.mH%d.root"%(args.config,algo,mass)
+				
+				subprocess.call(["mv","%s"%resultFile,"%s/higgsCombine%s.%s.mH%d_%s.root"%(outDir,args.config,algo,mass,interference)])
+
 
 
 def submitLimits(args,config,outDir,binned,tag):
@@ -291,7 +397,7 @@ def submitLimits(args,config,outDir,binned,tag):
 					if args.expected:
 						numJobs = int(config.exptToys/10)
 						for i in range(0,numJobs):
-							arguments='%s %s %s %s %d %d %d %d %d %s %d %d'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass)
+							arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,10,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,args.singlebin,args.mass,Libs)
 							condorFile = open("condor_FNAL.cfg", "w")
 							condorFile.write(condorTemplateFNAL%arguments)
 							condorFile.close()
@@ -299,7 +405,7 @@ def submitLimits(args,config,outDir,binned,tag):
 							subprocess.call(subCommand,shell=True)			
 					else:
 						#for i in range(0,config.numToys):
-						arguments='%s %s %s %s %d %d %d %d %d %s %d %d'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass)
+						arguments='%s %s %s %s %d %d %d %d %d %s %d %d %s'%(args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,args.singlebin,args.mass,Libs)
 						condorFile = open("condor_FNAL.cfg", "w")
 						condorFile.write(condorTemplateFNAL%arguments)
 						condorFile.close()
@@ -313,17 +419,32 @@ def submitLimits(args,config,outDir,binned,tag):
 
 
 				if config.submitTo == "Purdue":
-					if args.expected:
-						numJobs = int(config.exptToys/50)
-						for i in range(0,numJobs):
-							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,50,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
-							subprocess.call(subCommand,shell=True)			
-					else:
-						#for i in range(0,config.numToys):
-						subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda),timestamp,args.singlebin,args.mass,Libs)
-						subprocess.call(subCommand,shell=True)	
-						import time
-						time.sleep(0.1)		
+					if args.int:
+						cardName = cardName.replace(".txt",".root")
+						if args.expected:
+							numJobs = int(config.exptToys/50)
+							for i in range(0,numJobs):
+								subCommand = "qsub -l walltime=10:00:00 -q cms-express %s/submission/CILimitsInt_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,i,50,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,interference)
+								print subCommand
+								subprocess.call(subCommand,shell=True)			
+						else:
+							#for i in range(0,config.numToys):
+							subCommand = "qsub -l walltime=10:00:00 -q cms-express %s/submission/CILimitsInt_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,interference)
+							subprocess.call(subCommand,shell=True)	
+							import time
+							time.sleep(0.1)	
+					else:	
+						if args.expected:
+							numJobs = int(config.exptToys/50)
+							for i in range(0,numJobs):
+								subCommand = "qsub -l walltime=10:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,i,50,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,args.singlebin,args.mass,Libs)
+								subprocess.call(subCommand,shell=True)			
+						else:
+							#for i in range(0,config.numToys):
+							subCommand = "qsub -l walltime=10:00:00 -q cms-express %s/submission/CILimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %d %s'"%(srcDir,args.config,name+"_"+interference,srcDir,cardName,config.numInt,config.numToys,0,Lambda,getRange(Lambda,args.CI,args.usePhysicsModel),timestamp,args.singlebin,args.mass,Libs)
+							subprocess.call(subCommand,shell=True)	
+							import time
+							time.sleep(0.1)		
 
 
 	else:
@@ -347,20 +468,20 @@ def submitLimits(args,config,outDir,binned,tag):
 				if config.submitTo == "Purdue":
 					if args.frequentist:
 						if args.expected:
-							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimitsFreq_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s '"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,config.exptToys,mass,getRange(mass),timestamp,args.spin2,Libs)
+							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimitsFreq_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s '"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,config.exptToys,mass,getRange(mass,args.CI,args.usePhysicsModel),timestamp,args.spin2,Libs)
 							subprocess.call(subCommand,shell=True)			
 						else:
 							for i in range(0,config.numToys):
-								subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimitsFreq_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s '"%(srcDir,args.config,name,srcDir,cardName,config.numInt,i,0,mass,getRange(mass),timestamp,args.spin2,Libs)
+								subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimitsFreq_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s '"%(srcDir,args.config,name,srcDir,cardName,config.numInt,i,0,mass,getRange(mass,args.CI,args.usePhysicsModel),timestamp,args.spin2,Libs)
 								subprocess.call(subCommand,shell=True)			
 
 					else:
 						if args.expected:
-							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,config.exptToys,mass,getRange(mass),timestamp,args.spin2,Libs)
+							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,config.exptToys,mass,getRange(mass,args.CI,args.usePhysicsModel),timestamp,args.spin2,Libs)
 							subprocess.call(subCommand,shell=True)			
 						else:
 							#for i in range(0,config.numToys):
-							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d  %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,0,mass,getRange(mass),timestamp,args.spin2,Libs)
+							subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimeLimits_PURDUE.job -F '%s %s %s %s %d %d %d %d %d %s %d  %s'"%(srcDir,args.config,name,srcDir,cardName,config.numInt,config.numToys,0,mass,getRange(mass,args.CI,args.usePhysicsModel),timestamp,args.spin2,Libs)
 							subprocess.call(subCommand,shell=True)	
 							import time
 							time.sleep(0.1)		
@@ -369,9 +490,6 @@ def submitLimits(args,config,outDir,binned,tag):
 				mass += massRange[0]
 
 def submitPValues(args,config,outDir,binned,tag):
-
-	if "toy" in tag:
-		tag = "_"+tag
 
 	print "Job submission requested"
 	if config.submitTo in supportedResources:
@@ -386,17 +504,16 @@ def submitPValues(args,config,outDir,binned,tag):
         else:
                 masses = config.masses
 
-	if not os.path.exists("logFiles_%s"%args.config):
-    		os.makedirs("logFiles_%s"%args.config)
-
 	if not args.inject:
+		if not os.path.exists("logFiles_%s"%args.config):
+    			os.makedirs("logFiles_%s"%args.config)
 		srcDir = os.getcwd()
 		os.chdir(srcDir+"/logFiles_%s"%args.config)
 	else:
 		srcDir = os.getcwd()
-		if not os.path.exists("logFiles_%s_%d_%.4f_%d"%(args.config,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"])):
-    			os.makedirs("logFiles_%s_%d_%.4f_%d"%(args.config,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]))
-		os.chdir(srcDir+"/logFiles_%s_%d_%.4f_%d"%(args.config,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]))
+		if not os.path.exists("logFiles_%s%s_%d_%.4f_%d"%(args.config,args.tag,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"])):
+    			os.makedirs("logFiles_%s%s_%d_%.4f_%d"%(args.config,args.tag,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]))
+		os.chdir(srcDir+"/logFiles_%s%s_%d_%.4f_%d"%(args.config,args.tag,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]))
 	
 	Libs = ""
 	for library in config.libraries:
@@ -404,7 +521,7 @@ def submitPValues(args,config,outDir,binned,tag):
 
 	name = "_"
 	if args.inject:
-		name += "%d_%.4f_%d"%(config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]) + tag
+		name += "_%d_%.4f_%d"%(config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]) + tag
 	else:
 		name += tag
 	import time
@@ -434,7 +551,10 @@ def submitPValues(args,config,outDir,binned,tag):
 				subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimePValuesPLC_PURDUE.job -F '%s %s %s %s %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,massRange[1],massRange[2],massRange[0],timestamp,Libs)
 				subprocess.call(subCommand,shell=True)			
 			else:
-				subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimePValues_PURDUE.job -F '%s %s %s %s %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,massRange[1],massRange[2],massRange[0],timestamp,Libs)
+				if args.LEE:
+					subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimePValuesLEE_PURDUE.job -F '%s %s %s %s %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,massRange[1],massRange[2],massRange[0],timestamp,Libs)
+				else:	
+					subCommand = "qsub -l walltime=48:00:00 -q cms-express %s/submission/zPrimePValues_PURDUE.job -F '%s %s %s %s %d %d %d %s %s'"%(srcDir,args.config,name,srcDir,cardName,massRange[1],massRange[2],massRange[0],timestamp,Libs)
 				subprocess.call(subCommand,shell=True)			
 	os.chdir(srcDir)	
 
@@ -545,8 +665,47 @@ def submitLimitsToCrab(args,config,cardDir):
 
 		
 
-	sys.exit(0)	
-def createInputs(args,config,cardDir,CRAB=False):
+	sys.exit(0)
+
+
+def submitToFNALCondor(args,config):
+
+	from prepareLPCSubmission import createRunCSH, createJDL
+        if not os.path.exists("../../../submission"):
+		os.mkdir("../../../submission")
+	os.chdir("../../../")	
+	print "tar-ing the CMSSW installation"
+	subprocess.call(['tar', '-zcf', 'CMSSW810.tgz', 'CMSSW_8_1_0'])
+	print "copying tar file to eos"
+	subprocess.call(['xrdcp', "-f", 'CMSSW810.tgz', 'root://cmseos.fnal.gov//store/user/%s/CMSSW810.tgz'%config.LPCUsername])
+	os.chdir("submission/")
+ 	print "creating executable for condor jobs"		
+	createRunCSH(args,config)
+	os.chmod("runInterpretation.csh",0755)
+	if args.expected:
+		if args.CI:
+			for L in config.lambdas:
+				print "creating JDL file for Lambda %d"%L
+				createJDL(args,config,L)
+				print "submitting jobs for Lambda %d"%L
+				subprocess.call(["condor_submit", "condor.jdl"])
+
+		else:
+			for massBlock in config.massesExp:
+				mass = massBlock[1]
+				while mass <= massBlock[2]:
+					print "creating JDL file for mass %d"%mass
+					createJDL(args,config,mass)
+					print "submitting jobs for mass %d"%mass
+					subprocess.call(["condor_submit", "condor.jdl"])
+					mass += massBlock[0]					
+	else:
+		print "creating JDL file"
+		createJDL(args,config)
+		print "submitting jobs"
+		subprocess.call(["condor_submit", "condor.jdl"])
+	
+def createInputs(args,config,cardDir,CRAB=False,LEE=True):
 	for channel in config.channels:
 		print "writing datacards and workspaces for channel %s ...."%channel
 		call = ["python","writeDataCards.py","-c","%s"%channel,"-o","%s"%args.config,"-t","%s"%args.tag]
@@ -555,16 +714,18 @@ def createInputs(args,config,cardDir,CRAB=False):
 			call.append("%d"%args.mass)
 		if args.inject:
 			call.append("-i")
+		if args.recreateToys:
+			call.append("--recreateToys")
 		if args.binned:
 			call.append("-b")
-		if args.DM:
-			call.append("--DM")
 		if args.expected:
 			call.append("--expected")
 		if args.signif:
 			call.append("-s")
 		if args.spin2:
 			call.append("--spin2")
+		#if LEE:
+		#	call.append("--prepare")
 		if args.frequentist:
 			if not "-s" in call:
 				call.append("-s")
@@ -577,7 +738,7 @@ def createInputs(args,config,cardDir,CRAB=False):
 	tag = args.tag
 	if not args.tag == "":
 		tag = "_" + args.tag
-
+	#if not LEE:
 	if len(config.channels) > 1 or CRAB:
 		print "writing combined channel datacards ...."
 		if args.mass > 0:
@@ -613,7 +774,10 @@ def createInputsCI(args,config,cardDir):
 				mass = 2000
 			call = ["python","writeDataCardsCISingleBin.py","-c","%s"%channel,"-o","%s"%args.config,"-t","%s"%args.tag, "-m","%d"%mass]
 		else:	
-			call = ["python","writeDataCardsCI.py","-c","%s"%channel,"-o","%s"%args.config,"-t","%s"%args.tag]
+			if args.int:
+				call = ["python","writeDataCardsCIInt.py","-c","%s"%channel,"-o","%s"%args.config,"-t","%s"%args.tag]
+			else:
+				call = ["python","writeDataCardsCI.py","-c","%s"%channel,"-o","%s"%args.config,"-t","%s"%args.tag]
 		if args.expected:
 			call.append("--expected")
 		if args.signif:
@@ -637,7 +801,6 @@ def createInputsCI(args,config,cardDir):
 			lambdas = [args.Lambda]
 		else:
 			lambdas = config.lambdas
-			
 		for Lambda in lambdas:
 			for interference in config.interferences:
 				command = ["combineCards.py"]	
@@ -647,9 +810,12 @@ def createInputsCI(args,config,cardDir):
 				with open('%s'%outName, "w") as outfile:
 					subprocess.call(command, stdout=outfile,cwd=cardDir)
 
-			        if args.usePhysicsModel:
+			        if args.usePhysicsModel or args.int:
 					outFile = outName.split(".")[0]+".root"
-					command = ["text2workspace.py", outName, "-o", outFile, "-P", "HiggsAnalysis.CombinedLimit.LambdaCI:CIlambda"]
+					if args.int:
+						command = ["text2workspace.py", outName, "-o", outFile, "-P", "HiggsAnalysis.CombinedLimit.CIInterference:CIInterference"]
+					else:	
+						command = ["text2workspace.py", outName, "-o", outFile, "-P", "HiggsAnalysis.CombinedLimit.LambdaCI:CIlambda"]
 					subprocess.call(command)
 		print "done!"
 
@@ -730,7 +896,6 @@ if __name__ == "__main__":
         parser.add_argument("-w", "--write", action="store_true", default=False, help="create datacards and workspaces for this configuration")
         parser.add_argument("-b", "--binned", action="store_true", default=False, help="use binned dataset")
         parser.add_argument("-s", "--submit", action="store_true", default=False, help="submit jobs to cluster")
-        parser.add_argument( "--DM", action="store_true", default=False, help="run limits for DM interpretation")
         parser.add_argument("--signif", action="store_true", default=False, help="run significance instead of limits")
         parser.add_argument("--LEE", action="store_true", default=False, help="run significance on BG only toys to estimate LEE")
         parser.add_argument("--frequentist", action="store_true", default=False, help="use frequentist CLs limits")
@@ -738,26 +903,32 @@ if __name__ == "__main__":
         parser.add_argument("--plc", action="store_true", default=False, help="use PLC for signifcance calculation")
         parser.add_argument("-e", "--expected", action="store_true", default=False, help="expected limits")
         parser.add_argument("-i", "--inject", action="store_true", default=False, help="inject signal")
+        parser.add_argument("--recreateToys", action="store_true", default=False, help="recreate the toy dataset for this configuration")
         parser.add_argument("--crab", action="store_true", default=False, help="submit to crab")
         parser.add_argument("-c", "--config", dest = "config", required=True, help="name of the congiguration to use")
         parser.add_argument("-t", "--tag", dest = "tag", default = "", help="tag to label output")
         parser.add_argument( "--workDir", dest = "workDir", default = "", help="tells batch jobs where to put the datacards. Not for human use!")
+        parser.add_argument("-n", "--nToysExp", dest = "nToysExp", default = -1,type=int, help="number of expected limits to be calculated in one job, overwrites then expToys option from the config file. Used for CONDOR jobs at LPC so far")
         parser.add_argument("-m", "--mass", dest = "mass", default = -1,type=int, help="mass point")
         parser.add_argument("-L", "--Lambda", dest = "Lambda", default = -1,type=int, help="Lambda values")
         parser.add_argument( "--CI", dest = "CI",action="store_true", default = False, help="calculate CI limits")
         parser.add_argument( "--usePhysicsModel", dest = "usePhysicsModel",action="store_true", default = False, help="use PhysicsModel to set limtsi of Lamda ")
         parser.add_argument( "--singlebin", dest = "singlebin",action="store_true", default = False, help="use single bin counting for CI. The mass parameter now designates the lower mass threshold")
         parser.add_argument( "--Lower", dest = "lower",action="store_true", default = False, help="calculate lower limits")
+        parser.add_argument( "--int", dest = "int",action="store_true", default = False, help="consider interference for CI")
         parser.add_argument( "--spin2", dest = "spin2",action="store_true", default = False, help="calculate limits for spin2 resonances")
-
+        parser.add_argument( "--bias", dest = "bias",action="store_true", default = False, help="perform bias study")
         args = parser.parse_args()
 	
 	if args.LEE:
 		args.signif = True
 		args.submit = True
+		args.inject = True
         configName = "scanConfiguration_%s"%args.config
 
         config =  __import__(configName)
+	if args.nToysExp > -1:
+		config.exptToys = args.nToysExp
 	tag = args.tag
 	if not args.tag == "":
 		args.tag = "_" + args.tag
@@ -776,6 +947,12 @@ if __name__ == "__main__":
 	if (args.redo or args.write) and not args.LEE and not args.CI:
 		createInputs(args,config,cardDir)
 	elif (args.redo or args.write) and not args.LEE and args.CI:
+		if args.int and args.expected:
+			if args.workDir == "":
+				subprocess.call(["python","runInterpretation.py","-w","-c","%s"%args.config,"-t","%s_expGen"%tag,"--CI"])
+			else:
+				subprocess.call(["python","runInterpretation.py","-w","-c","%s"%args.config,"-t","%s_expGen"%tag,"--CI","--workDir",args.workDir])
+			prepareToys(args,config,cardDir+"_expGen")
 		createInputsCI(args,config,cardDir)
 	if args.write:
 		sys.exit()
@@ -785,23 +962,31 @@ if __name__ == "__main__":
         if not os.path.exists(outDir):
                 os.makedirs(outDir)
 	
-	if args.submit:
-		if args.signif:
-			if not args.LEE:
-				submitPValues(args,config,outDir,args.binned,args.tag)
+	if args.submit or args.LEE:
+		if config.submitTo == "FNAL":
+			submitToFNALCondor(args,config) 
+		else: 
+			if args.signif:
+				if not args.LEE:
+					submitPValues(args,config,outDir,args.binned,args.tag)
+				else:
+					tagSave = args.tag
+					for i in range(0,1000):
+						args.tag = args.tag+"_toy%d"%i
+						cardDir = getCardDir(args,config)
+						if args.redo:
+							createInputs(args,config,cardDir)
+						submitPValues(args,config,outDir,args.binned,args.tag)						
+						i += 1	
+						args.tag=tagSave					
 			else:
-				for i in range(0,1000):
-					args.tag = args.tag+"toy%d"%i
-					if args.redo:
-						createInputs(args,config,cardDir)
-					submitPValues(args,config,outDir,args.binned,args.tag)						
-					i += 1						
-		else:
-			submitLimits(args,config,outDir,args.binned,args.tag)
+				submitLimits(args,config,outDir,args.binned,args.tag)
 	else:
 		print "no submisson requested - running locally"
 		if args.signif:
 			runLocalSignificance(args,config,outDir,cardDir,args.binned)
+		elif args.bias:
+			runBiasStudy(args,config,outDir,cardDir,args.binned)	
 		else:
 			runLocalLimits(args,config,outDir,cardDir,args.binned)	
 

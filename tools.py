@@ -4,9 +4,6 @@ def getCardDir(args,config):
 		cardDir = "dataCards_" + args.config + "_%d_%.4f_%d"%(config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]) + args.tag
 	else:
 		cardDir = "dataCards_" + args.config +  args.tag
-	if hasattr(args,'DM'):
-		if args.DM:
-			cardDir = cardDir + "_DM"
 	if hasattr(args,'binned'):	
 		if args.binned:
 			cardDir = cardDir + "_binned"
@@ -20,9 +17,6 @@ def getOutDir(args,config):
 		outDir = "results_" + args.config + "_%d_%.4f_%d"%(config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]) + args.tag
 	else:
 		outDir = "results_" + args.config +  args.tag
-	if args.DM:
-		outDir = outDir + "_DM"
-
 	if args.binned:
 		outDir = outDir + "_binned"
 

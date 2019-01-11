@@ -18,6 +18,9 @@ if __name__ == "__main__":
     	parser.add_argument("--hybrid",dest="hybrid", action="store_true", default=False, help='use results from hybrid significance calculations')
     	parser.add_argument("--merge",dest="merge", action="store_true", default=False, help='merge expected limits first')
     	parser.add_argument("--CI",dest="CI", action="store_true", default=False, help='is CI')
+     	parser.add_argument("--bias",dest="bias", action="store_true", default=False, help='is for bias study')
+     	parser.add_argument("--mu1",dest="mu1", action="store_true", default=False, help='bias study for mu = 1')
+
         args = parser.parse_args()
 
 	tag = ""
@@ -49,10 +52,14 @@ if __name__ == "__main__":
 			algo = "HybridNew"
 	if args.frequentist:
 		algo = "HybridNew"	
+	if args.bias:
+ 		algo = "FitDiagnostics"	
 	if args.exp:
 		outFileName = "limitCard_%s_Exp"%(args.config)
 	elif args.signif:
 		outFileName = "limitCard_%s_Signif"%(args.config)
+ 	elif args.bias:
+ 		outFileName = "limitCard_%s_Bias"%(args.config)
 	else:
 		outFileName = "limitCard_%s_Obs"%(args.config)
 	if args.hybrid:
@@ -76,7 +83,7 @@ if __name__ == "__main__":
 					nJobs = int(config.exptToys/10)
 					fileList = []
 					for i in range(0,nJobs):
-                        			fileName = inputDir + "/higgsCombine%s_%s.MarkovChainMC.mH%d.%d.root"%(args.config+tag,interference,Lambda,i)
+                        			fileName = inputDir + "/higgsCombine%s_%s.MarkovChainMC.mH%d_%d.root"%(args.config+tag,interference,Lambda,i)
 						if os.path.isfile(fileName):
 							fileList.append(fileName)
 						i+=1
@@ -93,6 +100,10 @@ if __name__ == "__main__":
 				outFileName = "limitCard_%s_Exp"%(args.config)
 			elif args.signif:
 				outFileName = "limitCard_%s_Signif"%(args.config)
+		 	elif args.bias:
+ 				outFileName = "limitCard_%s_Bias"%(args.config)
+ 				if args.mu1:
+ 					outFileName = "limitCard_%s_Bias_mu1"%(args.config)
 			else:
 				outFileName = "limitCard_%s_Obs"%(args.config)
 			if args.hybrid:
@@ -123,6 +134,10 @@ if __name__ == "__main__":
                         			fileName = inputDir + "/higgsCombine%s_%s.%s.mH%d.123456.root"%(name,interference,algo,Lambda)
 					elif args.signif:	
                         			fileName = inputDir + "/higgsCombine%s_%s.%s.mH%d.root"%(name,interference,algo,Lambda)
+ 					elif  args.bias:
+                         			fileName = inputDir + "/higgsCombine%s_%s.%s.mH%d_mu0.root"%(name,interference,algo,Lambda)
+                         			if args.mu1:	
+ 							fileName = inputDir + "/higgsCombine%s_%s.%s.mH%d_mu1.root"%(name,interference,algo,Lambda)
 					else:
                         			fileName = inputDir + "/higgsCombine%s_%s.%s.mH%d.root"%(name,interference,algo,Lambda)
 					print fileName

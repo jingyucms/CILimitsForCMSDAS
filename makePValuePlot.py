@@ -1,5 +1,5 @@
 import ROOT
-from ROOT import TPaveLabel
+from ROOT import TPaveLabel, TFile
 import sys
 sys.path.append('cfgs/')
 import os, numpy
@@ -57,12 +57,14 @@ def countUpcrossings(directory,reference):
 def getMinPValue(fileName):
 
 	minPValue = 0.5
+	minPValMass = 0
 	m, p = getPValues(fileName)				
-	for pValue in p:
+	for index, pValue in enumerate(p):
 		if pValue < minPValue:
 			minPValue = pValue
+			minPValMass = m[index]
 	
-	return minPValue
+	return minPValue, minPValMass
 
 
 labels = {"signif": "#Gamma_{Z'}/M_{Z'} = 0.6%","signif006": "#Gamma_{Z'}/M_{Z'} = 0.6%","signif01": "#Gamma_{Z'}/M_{Z'} = 1%","signif03": "#Gamma_{Z'}/M_{Z'} = 3%","signif05": "#Gamma_{Z'}/M_{Z'} = 5%","signif10": "#Gamma_{Z'}/M_{Z'} = 10%"}
@@ -82,25 +84,38 @@ def main():
 		parser.add_argument("--ratioLabel",dest="ratioLabel",default='', help="label for ratio")
 		args = parser.parse_args()
 		
-		canv = ROOT.TCanvas("c1","c1",800,800)
+		canv = ROOT.TCanvas("c1","c1",600,450)
 		plotPad = ROOT.TPad("plotPad","plotPad",0,0,1,1)
 		style = setTDRStyle()
-		ROOT.gStyle.SetTitleYOffset(1.15)
+		ROOT.gStyle.SetTitleYOffset(1)
+		ROOT.gStyle.SetPadLeftMargin(0.12)
+		ROOT.gStyle.SetPadBottomMargin(0.12)
 		ROOT.gStyle.SetOptStat(0)
+    		ROOT.gStyle.SetTitleXSize(0.055)
+    		ROOT.gStyle.SetLabelSize(0.055,"X")
+    		ROOT.gStyle.SetLabelSize(0.055,"Y")
+   		ROOT.gStyle.SetTitleXOffset(1.05)
+    		#ROOT.gStyle.SetLabelYSize(0.04)
+    		ROOT.gStyle.SetTitleYSize(0.055)
+    		ROOT.gStyle.SetTitleYOffset(1.1)
+
 		plotPad.UseCurrentStyle()
 		plotPad.Draw()	
 		plotPad.cd()
 		plotPad.DrawFrame(200,5e-4,3000,10,";M [GeV]; local p-Value")
 		plotPad.SetLogy()
-	
-		leg = ROOT.TLegend(0.52, 0.751, 0.89, 0.92,"","brNDC")
+	    	#ROOT.gStyle.SetLabelXSize(0.04)
+		leg = ROOT.TLegend(0.32, 0.67, 0.9, 0.875,"","brNDC")
 		leg.SetFillColor(10)
 		leg.SetLineColor(10)
 		leg.SetShadowColor(0)
-		leg.SetBorderSize(1)		
-		
+		leg.SetBorderSize(0)		
+		leg.SetNColumns(2)		
+		leg.SetTextSize(0.06)
 		graphs = []
 		
+		name = "pValues_%s_%s"%(args.config,args.tag)
+		fileForHEPData = TFile("plots/"+name+"_forHEPData.root","RECREATE")
 		for index, card in enumerate(args.cards):
 			if 'width' in card:
 				width = "signif"+card.split('width')[-1].split('_')[0]
@@ -108,6 +123,8 @@ def main():
 				width = 'signif'
 		
 			masses, pValues = getPValues(card)
+			minPVal, minPValMass = getMinPValue(card)
+			print card, minPVal, minPValMass 
 			graphs.append( ROOT.TGraph(len(masses),numpy.array(masses),numpy.array(pValues)))
 			label = card.split("_")[-1].split(".")[0]
 			if args.smooth:
@@ -119,18 +136,21 @@ def main():
 			leg.AddEntry(graphs[index],labels[width],"l")			
 			graphs[index].Draw("Lsame")	
 			graphs[index].SetLineWidth(2)
+			graphs[index].SetName("graphPVal%s"%width)
+			graphs[index].Write("graphPVal%s"%width)
+
 	
 
 		
-		leg.Draw()
-		
+		leg.Draw()	
+    		leg.SetTextSize(0.045)
 		latex = ROOT.TLatex()
 		latex.SetTextFont(42)
 		latex.SetTextAlign(31)
 		latex.SetTextSize(0.03)
 		latex.SetNDC(True)
 		latexCMS = ROOT.TLatex()
-		latexCMS.SetTextFont(61)
+		latexCMS.SetTextFont(62)
 		latexCMS.SetTextSize(0.055)
 		latexCMS.SetNDC(True)
 		latexCMSExtra = ROOT.TLatex()
@@ -143,22 +163,28 @@ def main():
         	config =  __import__(configName)
 		chan = config.leptons
 
-		if chan == "elmu":	
-			latex.DrawLatex(0.95, 0.96, "35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu#mu )")
-		elif chan == "elel":
-			latex.DrawLatex(0.95, 0.96, "35.9 fb^{-1} (13 TeV, ee)")
-		elif chan ==  "mumu":
-			latex.DrawLatex(0.95, 0.96, "36.3 fb^{-1} (13 TeV, #mu#mu )")
+         	if (chan=="mumu"): 
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+        	elif (chan=="elel"):
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
+        	elif (chan=="elmu"):
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
 
+	    	plLumi.SetTextSize(0.5)
+    		plLumi.SetTextFont(42)
+    		plLumi.SetFillColor(0)
+    		plLumi.SetBorderSize(0)
+    		plLumi.Draw()
+ 
 
 		cmsExtra = "Preliminary"
-		latexCMS.DrawLatex(0.19,0.88,"CMS")
+		latexCMS.DrawLatex(0.14,0.81,"CMS")
 		if "Simulation" in cmsExtra:
 			yLabelPos = 0.81	
 		else:
 			yLabelPos = 0.84	
 		
-		latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))			
+#		latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))			
 		
 		ZeroSigmaLine = ROOT.TLine(200,0.5,3000,0.5)
 		ZeroSigmaLine.SetLineStyle(ROOT.kDashed)
@@ -197,9 +223,21 @@ def main():
 		#~ latex.DrawLatex(4200, 3e-7, "5#sigma")
 	
 		#~ ROOT.gPad.WaitPrimitive()
-		name = "pValues_%s_%s"%(args.config,args.tag)
+		plotPad.SetTicks(1,1)
+		plotPad.RedrawAxis()
 		if args.smooth:
 			name += "_smoothed"
-		name = name+".pdf"
-		canv.Print("plots/"+name)
+		#name = name+".pdf"
+		canv.Print("plots/"+name+".pdf")
+		canv.Print("plots/"+name+".root")
+
+		plotPad.RedrawAxis()
+
+   		fileForHEPData.Write()
+		fileForHEPData.Close() 
+
+
+		
+
+
 main()

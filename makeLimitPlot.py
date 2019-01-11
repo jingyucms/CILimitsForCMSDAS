@@ -11,9 +11,9 @@ from ROOT import TCanvas,TGraphAsymmErrors,TFile,TH1D,TH1F,TGraph,TGraphErrors,g
 ROOT.gROOT.SetBatch(True)
 
 colors = {"ssm":ROOT.kGreen+3,"psi":ROOT.kBlue,"N":ROOT.kRed+2,"S":ROOT.kOrange,"I":ROOT.kMagenta+3,"kai":ROOT.kGreen+3,"eta":ROOT.kBlack,"RS_kMpl01":ROOT.kOrange+3,"RS_kMpl005":ROOT.kRed,"RS_kMpl001":ROOT.kViolet,"RS_kMpl0001":ROOT.kRed}
-labels = {"ssm":"Z'_{SSM} (LOx1.3)","psi":"Z'_{#psi} (LOx1.3)","S":"Z'_{S} (LOx1.3)","I":"Z'_{I}  (LOx1.3)","N":"Z'_{N} (LOx1.3)","eta":"Z'_{#eta} (LOx1.3)","kai":"Z'_{#chi} (LOx1.3)","RS_kMpl01":"G_{KK} k/#bar{M}_{pl} = 0.1" ,"RS_kMpl005":"G_{KK} k/#bar{M}_{pl} = 0.05" ,"RS_kMpl001":"G_{KK} k/#bar{M}_{pl} = 0.01" ,"RS_kMpl0001":"G_{KK} k/#bar{M}_{pl} = 0.001" }
-kFacs  = {"ssm":1.3,"psi":1.3,"eta":1.3,"S":1.3,"N":1.3,"I":1.3,"kai":1.3,"RS_kMpl01":1.3,"RS_kMpl005":1.3,"RS_kMpl001":1.3,"RS_kMpl0001":1.3}
-
+#labels = {"ssm":"Z'_{SSM}","psi":"Z'_{#psi}","S":"Z'_{S}","I":"Z'_{I}","N":"Z'_{N}","eta":"Z'_{#eta}","kai":"Z'_{#chi}","RS_kMpl01":"G_{KK} k/#bar{M}_{pl} = 0.1 (LO x 1.6)" ,"RS_kMpl005":"G_{KK} k/#bar{M}_{pl} = 0.05 (LO x 1.6)" ,"RS_kMpl001":"G_{KK} k/#bar{M}_{pl} = 0.01 (LO x 1.6)" ,"RS_kMpl0001":"G_{KK} k/#bar{M}_{pl} = 0.001 (LO x 1.6)" }
+labels = {"ssm":"Z'_{SSM}","psi":"Z'_{#psi}","S":"Z'_{S}","I":"Z'_{I}","N":"Z'_{N}","eta":"Z'_{#eta}","kai":"Z'_{#chi}","RS_kMpl01":"k/#bar{M}_{pl} = 0.1" ,"RS_kMpl005":"k/#bar{M}_{pl} = 0.05" ,"RS_kMpl001":"k/#bar{M}_{pl} = 0.01" ,"RS_kMpl0001":"k/#bar{M}_{pl} = 0.001" }
+kFacs  = {"ssm":1.0,"psi":1.0,"eta":1.0,"S":1.0,"N":1.0,"I":1.0,"kai":1.0,"RS_kMpl01":1.6,"RS_kMpl005":1.6,"RS_kMpl001":1.6,"RS_kMpl0001":1.6}
 
 def getMassDependentKFactor(mass):
 	if mass <= 1500:
@@ -21,6 +21,13 @@ def getMassDependentKFactor(mass):
 	else:
 		return 1.35482 + 0.000121208*mass  - 6.25306e-08*mass*mass + 4.37854e-12*mass**3
 
+
+def getAlphaSFactor(mass):
+	#if mass <= 1500:
+	#	return 1.41
+	#else:
+	#	return 1.35482 + 0.000121208*mass  - 6.25306e-08*mass*mass + 4.37854e-12*mass**3
+	return 0.936557 + 4.45269e-05 * mass
 
 def printPlots(canvas,name):
     	canvas.Print('plots/'+name+".png","png")
@@ -30,7 +37,7 @@ def printPlots(canvas,name):
     	canvas.Print('plots/'+name+".eps","eps")
 
 
-def getXSecCurve(name,kFac):
+def getXSecCurve(name,kFac,massDependent=False):
    	smoother=TGraphSmooth("normal")
     	X=[]
     	Y=[]
@@ -38,13 +45,17 @@ def getXSecCurve(name,kFac):
     	for entries in file:
         	entry=entries.split()
         	X.append(float(entry[0]))
-		if KFAC and not SPIN2:
-			kFac = getMassDependentKFactor(float(entry[0]))
+		if not SPIN2:
+			kFac = getAlphaSFactor(float(entry[0]))
+			if massDependent:
+				kFac = kFac*getMassDependentKFactor(float(entry[0]))
         	Y.append(float(entry[1])*kFac/1928)
    	aX=numpy.array(X)
 	aY=numpy.array(Y)
     	Graph=TGraph(len(X),aX,aY)
     	GraphSmooth=smoother.SmoothSuper(Graph,"linear")
+	if name == "ssm":
+   		GraphSmooth.SetLineStyle(ROOT.kDashed)
    	GraphSmooth.SetLineWidth(3)
 	if GUT:
 		GraphSmooth.SetLineWidth(2)
@@ -54,13 +65,15 @@ def getXSecCurve(name,kFac):
     		Graph.SetLineColor(colors[name])
    		Graph.SetLineWidth(3)
 		return deepcopy(Graph)
-	else:	
+	else:
+		if massDependent:
+			GraphSmooth.SetLineStyle(ROOT.kDashed)	
 		return deepcopy(GraphSmooth)
 
 
 
 def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
-
+	fileForHEPData = TFile("plots/"+output+"_forHEPData.root","RECREATE")
     	fileObs=open(obs,'r')
    	fileExp=open(exp,'r')
 
@@ -142,6 +155,7 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	xPointsForValues2=[]
     	values=[]
     	xPointsForValues=[]
+    	xPointsForErrors=[]
     	if printStats: print "length of expectedx: ", len(expectedx)
     	if printStats: print "length of expected1SigLow: ", len(expected1SigLow)
     	if printStats: print "length of expected1SigHigh: ", len(expected1SigHigh)
@@ -150,6 +164,7 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	for x in range (0,len(expectedx)):
         	values2.append(expected2SigLow[x])
         	xPointsForValues2.append(expectedx[x])
+		xPointsForErrors.append(0)
     	for x in range (len(expectedx)-1,0-1,-1):
         	values2.append(expected2SigHigh[x])
         	xPointsForValues2.append(expectedx[x])
@@ -167,18 +182,26 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	xPoints2=numpy.array(xPointsForValues2)
     	exp1Sig=numpy.array(values)
     	xPoints=numpy.array(xPointsForValues)
+    	xPointsErrors=numpy.array(xPointsForErrors)
     	if printStats: print "xPoints2: ",xPoints2
     	if printStats: print "exp2Sig: ",exp2Sig
     	if printStats: print "xPoints: ",xPoints
     	if printStats: print "exp1Sig: ",exp1Sig
-    	GraphErr2Sig=TGraphAsymmErrors(len(xPoints),xPoints2,exp2Sig)
-    	GraphErr2Sig.SetFillColor(ROOT.kYellow+1)
+
+    	GraphErr2SigForHEPData=TGraphAsymmErrors(len(expX),expX,expY,numpy.array(xPointsErrors),numpy.array(xPointsErrors),numpy.array(expected2SigLow),numpy.array(expected2SigHigh))
+    	GraphErr1SigForHEPData=TGraphAsymmErrors(len(expX),expX,expY,numpy.array(xPointsErrors),numpy.array(xPointsErrors),numpy.array(expected1SigLow),numpy.array(expected1SigHigh))
+    	
+	GraphErr2Sig=TGraphAsymmErrors(len(xPoints),xPoints2,exp2Sig)
+    	GraphErr2Sig.SetFillColor(ROOT.kOrange)
     	GraphErr1Sig=TGraphAsymmErrors(len(xPoints),xPoints,exp1Sig)
-    	GraphErr1Sig.SetFillColor(ROOT.kGreen)
-
-    	cCL=TCanvas("cCL", "cCL",0,0,800,500)
+    	GraphErr1Sig.SetFillColor(ROOT.kGreen+1)
+    	#cCL=TCanvas("cCL", "cCL",0,0,567,384)
+    	cCL=TCanvas("cCL", "cCL",0,0,600,450)
     	gStyle.SetOptStat(0)
-
+	gStyle.SetPadRightMargin(0.063)
+	gStyle.SetPadLeftMargin(0.14)
+	gStyle.SetPadBottomMargin(0.12)
+	
 	if not obs2 == "":
     		plotPad = ROOT.TPad("plotPad","plotPad",0,0.3,1,1)
     		ratioPad = ROOT.TPad("ratioPad","ratioPad",0,0.,1,0.3)
@@ -254,35 +277,45 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
 	xSecCurves = []
 	for signal in signals:
 		xSecCurves.append(getXSecCurve(signal,kFacs[signal])) 
+		#xSecCurves.append(getXSecCurve(signal,kFacs[signal],massDependent=True)) 
 
 	#Draw the graphs:
 	plotPad.SetLogy()
-	if "Moriond" in output:
-    		DummyGraph=TH1F("DummyGraph","",100,200,5500)
-    	else:	
-		DummyGraph=TH1F("DummyGraph","",100,400,5500)
+    	DummyGraph=TH1F("DummyGraph","",100,200,5500)
     	DummyGraph.GetXaxis().SetTitle("M [GeV]")
-    	if chan=="mumu":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#mu#mu+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu#mu+X)")
-    	elif chan=="elel":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
-    	elif chan=="elmu":
-        	DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+	if SPIN2:
+        		DummyGraph.GetYaxis().SetTitle("[#sigma#upoint#font[12]{B}] G_{KK} / [#sigma#upoint#font[12]{B}] Z")
+	else:
+        		DummyGraph.GetYaxis().SetTitle("[#sigma#upoint#font[12]{B}] Z' / [#sigma#upoint#font[12]{B}] Z")
+
+#	if SPIN2:
+#	    	if chan=="mumu":
+#       	 		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrow#mu^{+}#mu^{-}+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu^{+}#mu^{-}+X)")
+#    		elif chan=="elel":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
+#    		elif chan=="elmu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowG_{KK}+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+#	else:
+#    		if chan=="mumu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#mu^{+}#mu^{-}+X) / #sigma(pp#rightarrowZ+X#rightarrow#mu^{+}#mu^{-}+X)")
+#    		elif chan=="elel":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrowee+X) / #sigma(pp#rightarrowZ+X#rightarrowee+X)")
+#    		elif chan=="elmu":
+#        		DummyGraph.GetYaxis().SetTitle("#sigma(pp#rightarrowZ'+X#rightarrow#font[12]{ll}+X) / #sigma(pp#rightarrowZ+X#rightarrow#font[12]{ll}+X)")
+
+
 
     	gStyle.SetOptStat(0)
-	if "Moriond" in output:
-    		DummyGraph.GetXaxis().SetRangeUser(200,5500)
-    	else:	
-		DummyGraph.GetXaxis().SetRangeUser(400,5500)
+	DummyGraph.GetXaxis().SetRangeUser(200,5500)
 
     	DummyGraph.SetMinimum(1e-8)
     	DummyGraph.SetMaximum(1e-4)
-    	DummyGraph.GetXaxis().SetLabelSize(0.04)
-    	DummyGraph.GetXaxis().SetTitleSize(0.045)
-   	DummyGraph.GetXaxis().SetTitleOffset(1.)
-    	DummyGraph.GetYaxis().SetLabelSize(0.04)
-    	DummyGraph.GetYaxis().SetTitleSize(0.045)
-    	DummyGraph.GetYaxis().SetTitleOffset(1.)
+    	DummyGraph.GetXaxis().SetLabelSize(0.055)
+    	DummyGraph.GetXaxis().SetTitleSize(0.055)
+   	DummyGraph.GetXaxis().SetTitleOffset(1.05)
+    	DummyGraph.GetYaxis().SetLabelSize(0.055)
+    	DummyGraph.GetYaxis().SetTitleSize(0.055)
+    	DummyGraph.GetYaxis().SetTitleOffset(1.3)
     	DummyGraph.Draw()
     	if (FULL):
         	GraphErr2Sig.Draw("F")
@@ -301,7 +334,7 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
         	curve.Draw("lsame")
 
 
-    	plCMS=TPaveLabel(.12,.81,.22,.88,"CMS","NBNDC")
+    	plCMS=TPaveLabel(.16,.81,.27,.88,"CMS","NBNDC")
 #plCMS.SetTextSize(0.8)
     	plCMS.SetTextAlign(12)
     	plCMS.SetTextFont(62)
@@ -311,14 +344,15 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     
     	plCMS.Draw()
 
-    	plPrelim=TPaveLabel(.12,.76,.25,.82,"Preliminary","NBNDC")
+    	plPrelim=TPaveLabel(.16,.76,.27,.82,"Preliminary","NBNDC")
     	plPrelim.SetTextSize(0.6)
     	plPrelim.SetTextAlign(12)
     	plPrelim.SetTextFont(52)
     	plPrelim.SetFillColor(0)
     	plPrelim.SetFillStyle(0)
     	plPrelim.SetBorderSize(0)
-    	plPrelim.Draw()
+	if "2017" in output or "Combination" in output:
+	    	plPrelim.Draw()
 
 
     	cCL.SetTickx(1)
@@ -327,33 +361,41 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	cCL.Update()
     
     	#leg=TLegend(0.65,0.65,0.87,0.87,"","brNDC")   
-    	leg=TLegend(0.540517,0.623051,0.834885,0.878644,"","brNDC")   
+    	#leg=TLegend(0.540517,0.623051,0.834885,0.878644,"","brNDC")   Default
+    	leg=TLegend(0.5,0.58,0.834885,0.878644,"","brNDC")   
+    	if SPIN2:
+		leg=TLegend(0.5,0.58,0.834885,0.878644,"","brNDC")   
 #    	leg=TLegend(0.55,0.55,0.87,0.87,"","brNDC")   
-    	leg.SetTextSize(0.032)
+    	leg.SetTextSize(0.0425)
 	if not obs2 == "":
 		if ratioLabel == "":
 			ratioLabel = "Variant/Default"
 		ratioLabels = ratioLabel.split("/")
 		print ratioLabels	
-		leg.AddEntry(GraphObs, "%s Observed 95%% CL limit"%ratioLabels[1],"l")
-    		leg.AddEntry(GraphObs2,"%s Observed 95%% CL limit"%ratioLabels[0],"l")
+		leg.AddEntry(GraphObs, "%s Obs. 95%% CL limit"%ratioLabels[1],"l")
+    		leg.AddEntry(GraphObs2,"%s Obs. 95%% CL limit"%ratioLabels[0],"l")
     	
 	else:
 		if not EXPONLY:
-			leg.AddEntry(GraphObs,"Observed 95% CL limit","l")
-    		leg.AddEntry(GraphExp,"Expected 95% CL limit, median","l")
+			leg.AddEntry(GraphObs,"Obs. 95% CL limit","l")
+    		leg.AddEntry(GraphExp,"Exp. 95% CL limit, median","l")
         	if (FULL):
-   		     	leg.AddEntry(GraphErr1Sig,"Expected 95% CL limit, 1 s.d.","f")
-        		leg.AddEntry(GraphErr2Sig,"Expected 95% CL limit, 2 s.d.","f")
+   		     	leg.AddEntry(GraphErr1Sig,"Exp. (68%)","f")
+        		leg.AddEntry(GraphErr2Sig,"Exp. (95%)","f")
 
 
-    	leg1=TLegend(0.665517,0.483051,0.834885,0.623051,"","brNDC")
+    	leg1=TLegend(0.7,0.4,0.9,0.55,"","brNDC")
+	leg1.SetTextSize(0.05)
 	if GUT: 
-    		leg1=TLegend(0.7,0.35,0.89,0.623051,"","brNDC")
-	leg1.SetTextSize(0.032)
-	
+    		leg1=TLegend(0.6,0.35,0.75,0.623051,"","brNDC")
+	if SPIN2:
+    		leg1=TLegend(0.7,0.35,0.9,0.58,"G_{KK} (LO x 1.6)","brNDC")
+		leg1.SetTextSize(0.045)
       	for index, signal in enumerate(signals):
+		xSecCurves[index].SetName(labels[signal])
+		xSecCurves[index].Write(labels[signal])	
         	leg1.AddEntry(xSecCurves[index],labels[signal],"l")
+	leg1.SetBorderSize(0)
 
     	leg.SetLineWidth(0)
     	leg.SetLineStyle(0)
@@ -368,11 +410,19 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	leg1.Draw("hist")
 	if "Moriond" in output:
          	if (chan=="mumu"): 
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
         	elif (chan=="elel"):
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
-            		plLumi=TPaveLabel(.4,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+
+	elif "2017" in output or "Combination" in output:
+         	if (chan=="mumu"): 
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+        	elif (chan=="elel"):
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"41.4 fb^{-1} (13 TeV, ee)","NBNDC")
+        	elif (chan=="elmu"):
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"77.3 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
 	else:
  	      	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
@@ -381,15 +431,16 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"12.4 fb^{-1} (13 TeV, ee) + 13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
 
-    	plLumi.SetTextSize(0.5)
+    	
+	plLumi.SetTextSize(0.5)
     	plLumi.SetTextFont(42)
     	plLumi.SetFillColor(0)
     	plLumi.SetBorderSize(0)
     	plLumi.Draw()
     
-
+	plotPad.SetTicks(1,1)
 	plotPad.RedrawAxis()
-	
+		
 	if not obs2 == "":
 
     		ratioPad.cd()
@@ -408,9 +459,20 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     		ratioGraph.Draw("sameP")
 
 
+	GraphErr2SigForHEPData.SetName("graph2Sig")
+	GraphErr2SigForHEPData.Write("graph2Sig")
 
+	GraphErr1SigForHEPData.SetName("graph1Sig")
+	GraphErr1SigForHEPData.Write("graph1Sig")
 
-    
+	GraphExp.SetName("graphExp")
+	GraphExp.Write("graphExp")
+
+	GraphObs.SetName("graphObs")
+	GraphObs.Write("graphObs")
+
+   	fileForHEPData.Write()
+	fileForHEPData.Close() 
     	cCL.Update()
     	printPlots(cCL,output)
     

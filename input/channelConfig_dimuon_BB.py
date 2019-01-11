@@ -18,23 +18,14 @@ def addBkgUncertPrior(ws,label,channel,uncert):
         ws.factory("prod::%s_%s_forUse(%s_%s, %s_%s_nuis)"%(label,channel,label,channel,label,channel))
 
 
-def provideSignalScaling(mass,DM=False,spin2=False):
+def provideSignalScaling(mass,spin2=False):
 	nz   =  53134                      #From Alexander (80X Moriond ReReco)
 	nsig_scale = 1376.0208367514358       # prescale/eff_z (167.73694/0.1219) -->derives the lumi 
 	eff = signalEff(mass,spin2)
-	if DM:
-	    	xsecRatio = {}
-	    	fileZPrimePsi=open('tools/xsec_PSI.txt','r')
-    		for entries in fileZPrimePsi:
-        		entry=entries.split()
-        		xsecRatio[entry[0]] = float(entry[1])*1.3/1928 
+	result = (nsig_scale*nz*eff)
 
-		result = nz*nsig_scale*eff*xsecRatio[str(mass)]
-	else:		
-		result = (nsig_scale*nz*eff)
 	return result
 
-	
 
 def signalEff(mass,spin2=False):
 

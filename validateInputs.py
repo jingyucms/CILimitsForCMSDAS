@@ -54,9 +54,14 @@ if __name__ == "__main__":
 					effSpin2.append(channelConfig.signalEff(mass,spin2=True))	
 					resStuff = channelConfig.getResolution(mass)
 					res.append(resStuff["res"])
-					alphaL.append(resStuff["alphaL"])
-					alphaR.append(resStuff["alphaR"])
-					scale.append(resStuff["scale"])
+					if  "electron_2017" in channel:	
+						alphaL.append(resStuff["cutL"])
+						alphaR.append(resStuff["cutR"])
+						scale.append(resStuff["mean"])
+					elif not( "electron" in channel and mass > 2300):	
+						alphaL.append(resStuff["alphaL"])
+						alphaR.append(resStuff["alphaR"])
+						scale.append(resStuff["scale"])
                         		mass += massRange[0]
 
 
@@ -83,9 +88,10 @@ if __name__ == "__main__":
 			scaleGraph = ROOT.TGraph()
 			for i, mass in enumerate(masses):
 				resGraph.SetPoint(i,mass,res[i])
-				alphaLGraph.SetPoint(i,mass,alphaL[i])
-				alphaRGraph.SetPoint(i,mass,alphaR[i])
-				scaleGraph.SetPoint(i,mass,scale[i])
+				if not ("electron" in channel and mass > 2300):
+					alphaLGraph.SetPoint(i,mass,alphaL[i])
+					alphaRGraph.SetPoint(i,mass,alphaR[i])
+					scaleGraph.SetPoint(i,mass,scale[i])
 		
 			maxVal = max(res)*1.5
 			minVal = 0
@@ -129,11 +135,12 @@ if __name__ == "__main__":
 								  ROOT.RooFit.Range(massLow,massHigh),
 								  ROOT.RooFit.LineColor(ROOT.kGreen + 2),
 								  ROOT.RooFit.LineWidth(2))	
-			#plotPad.DrawFrame(massRanges[0][1],1e-3,massRanges[-1][2],5e4,'%s;m [GeV]; Events'%channel)
-			plotPad.DrawFrame(massLow,1e-3,massHigh,10,'%s;m [GeV]; Events'%channel)
+			plotPad.DrawFrame(massLow,1e-3,massHigh,5e4,'%s;m [GeV]; Events'%channel)
+			#plotPad.DrawFrame(massLow,1e-3,massHigh,10,'%s;m [GeV]; Events'%channel)
 			#plotPad.DrawFrame(900,1e-3,6000,5e4,'%s;m [GeV]; Events'%channel)
-			#plotPad.SetLogy()
+			plotPad.SetLogy()
 			frame.Draw('same')
+			#ws.Print()
 			c.Print("validation/%s_shapes.pdf"%channel)
 
 #		else:	
