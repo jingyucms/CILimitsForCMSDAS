@@ -48,7 +48,7 @@ rm -rf CMSSW_8_1_0
 	if args.usePhysicsModel:
 		command += " --usePhysicsModel"
 	if args.singlebin:
-		comamnd += " --singlebin -m %d"%args.mass
+		command += " --singlebin -m %d"%args.mass
 	if args.lower:
 		command += " --Lower"
 	if args.spin2:
