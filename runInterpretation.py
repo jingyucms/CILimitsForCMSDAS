@@ -681,6 +681,10 @@ def submitToFNALCondor(args,config):
 	os.chdir("submission/")
  	print "creating executable for condor jobs"		
 	createRunCSH(args,config)
+	print os.getcwd()
+#	if args.expected:
+#		os.chmod("runInterpretationExp.csh",0755)
+#	else:	
 	os.chmod("runInterpretation.csh",0755)
 	if args.expected:
 		if args.CI:

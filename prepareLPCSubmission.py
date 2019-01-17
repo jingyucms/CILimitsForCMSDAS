@@ -10,7 +10,7 @@ xrdcp -s root://cmseos.fnal.gov//store/user/%s/CMSSW810.tgz .
 tar -xf CMSSW810.tgz
 rm CMSSW810.tgz
 export SCRAM_ARCH=slc6_amd64_gcc530
-cd CMSSW_8_1_0/src/ZPrimeCombine
+cd CMSSW_8_1_0/src/CILimitsForCMSDAS
 scramv1 b ProjectRename
 eval `scramv1 runtime -sh` # cmsenv is an alias not on the workers
 %s -m ${1} -L ${2} -n ${3} # runs the actual calculations
