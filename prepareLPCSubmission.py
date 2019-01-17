@@ -81,7 +81,7 @@ universe = vanilla
 Executable = %s
 Should_Transfer_Files = YES
 whenToTransferOutput = ON_EXIT
-Transfer_Input_Files = runInterpretation.csh
+Transfer_Input_Files = %s
 Output = zPrimeCombine_\$(Cluster)_\$(Process).stdout
 Error = zPrimeCombine_\$(Cluster)_\$(Process).stderr
 Log = zPrimeCombine_$(Cluster)_$(Process).log
@@ -121,7 +121,7 @@ x509userproxy = $ENV(X509_USER_PROXY)
 	if args.expected:
 		fileName = "runInterpretationExp.csh"
 	text_file = open("condor.jdl", "w")
-	text_file.write(template % (fileName,queueBlock) )
+	text_file.write(template % (fileName,fileName,queueBlock) )
 	text_file.close()
 
 
