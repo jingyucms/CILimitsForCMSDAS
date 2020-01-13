@@ -139,11 +139,35 @@ def provideUncertainties(mass):
 
 	result = {}
 
-	result["sigEff"] = signalEffUncert(mass)
+	result["reco"] = signalEffUncert(mass)
+	result["sigEff"] = [0.0]
 	result["massScale"] = 0.03
 	result ["bkgUncert"] = 1.4	
 	result ["res"] = 0.15
 	result["bkgParams"] = {"bkg_a":0.0009545020680878141,"bkg_b":0.02363157894736842,"bkg_c":0.03163023110555902,"bkg_d":0.03849293563579278,"bkg_e":0.0015616866215512754, "bkg_a2":0.002012072434607646,"bkg_b2":0.010820559062218215,"bkg_c2":0.031979147941758046,"bkg_e2":0.004791238877481177}
+	return result
+
+def provideCorrelations():
+	result = {}
+	''' Combine correlates uncertainties that have the same name. So wa hve to adjust the names to achieve what we want. 
+		1) put the full channel name. That will make it uncorrelated with all other channels
+		2) keep the channel name but remove the last bit: will correlate between the two subcategories within a year
+		3) Just keep the dimuon or dielectron name, so we correlate between the years
+		4) To correlate some specific combination of uncertainties, come up with a name and add it to all releavent channel configs
+	'''
+	#result['sigEff'] = 'dimuon' 
+	#result['massScale'] = 'dimuon' 
+	#result['bkgUncert'] = 'dimuon_Moriond2017_BE' 
+	#result['res'] = 'dimuon' 
+	#result['bkgParams'] = 'dimuon_Moriond2017_BE' 
+	result['sigEff'] = 'dimuon' 
+	result['massScale'] = 'dimuon_Moriond2017' 
+	result['bkgUncert'] = 'dimuon_Moriond2017_BE' 
+	result['res'] = 'dimuon_Moriond2017_BE' 
+	result['reco'] = 'dimuon_Moriond2017_BE' 
+	result['bkgParams'] = 'dimuon_Moriond2017_BE' 
+
+
 	return result
 
 def provideUncertaintiesCI(mass):
@@ -220,6 +244,7 @@ def loadBackgroundShape(ws,useShapeUncert=False):
 		bkgParamsUncert = provideUncertainties(1000)["bkgParams"]
 		for uncert in bkgParamsUncert:
 			addBkgUncertPrior(ws,uncert,"dimuon_Moriond2017_BE",bkgParamsUncert[uncert] )
+			#addBkgUncertPrior(ws,uncert,"dimuon_Moriond2017_BE",0.1 )
 
 	# background shape
 		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_Moriond2017_BE(mass_dimuon_Moriond2017_BE, bkg_a_dimuon_Moriond2017_BE_forUse, bkg_b_dimuon_Moriond2017_BE_forUse, bkg_c_dimuon_Moriond2017_BE_forUse,bkg_d_dimuon_Moriond2017_BE_forUse,bkg_e_dimuon_Moriond2017_BE_forUse, bkg_a2_dimuon_Moriond2017_BE_forUse, bkg_b2_dimuon_Moriond2017_BE_forUse, bkg_c2_dimuon_Moriond2017_BE_forUse,bkg_e2_dimuon_Moriond2017_BE_forUse,bkg_syst_a,bkg_syst_b)")		

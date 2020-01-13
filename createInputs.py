@@ -69,157 +69,7 @@ def createSignalDataset(massVal,name,channel,width,nEvents,CB,scale,tag=""):
 		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
 		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
 		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
-
-
-	else:
-		res = RooRealVar("res%s"%peakName,"res%s"%peakName, massVal*params['res'])
-        	if params['alphaR'] < 0:
-        		params['alphaR'] = 0
-		res.setConstant()
-		getattr(ws,'import')(res,ROOT.RooCmdArg())
-
-		alphaL = RooRealVar("alphaL_%s"%channel,"alphaL_%s"%channel,params['alphaL'])
-		alphaL.setConstant()
-		getattr(ws,'import')(alphaL,ROOT.RooCmdArg())
-
-		alphaR = RooRealVar("alphaR_%s"%channel,"alphaR_%s"%channel, params['alphaR'])
-		alphaR.setConstant()
-		getattr(ws,'import')(alphaR,ROOT.RooCmdArg())
-
-		beta_res = RooRealVar('beta_res%s'%peakName,'beta_res%s'%peakName,0,-5,5)
-		getattr(ws,'import')(beta_res,ROOT.RooCmdArg())
-		resUncert = 1. + config.provideUncertainties(massVal)["res"]
-		res_kappa = RooRealVar('res%s_kappa'%peakName,'res%s_kappa'%peakName,resUncert)
-		res_kappa.setConstant()
-		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
-		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
-		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
-
-	if CB:
-		ws.factory("BreitWigner::bw(massFullRange, peak, %.3f)"%(massVal*width))#	
-
-		if 'electron' in channel and massVal > 2300:
-			ws.factory("RooCBShape::cb(massFullRange, mean[0.0], res_scaled%s, alpha_%s, n_%s)"%(peakName,channel,channel))
-		else:	
-			ws.factory("RooCruijff::cb(massFullRange, mean[0.0], res_scaled%s, res_scaled%s, alphaL_%s, alphaR_%s)"%(peakName,peakName,channel,channel))
-		bw = ws.pdf("bw")
-		cb = ws.pdf("cb")
-		mass.setBins(20000,"cache")
-		mass.setMin("cache",0)
-		mass.setMax("cache",12500); ## need to be adjusted to be higher than limit setting
-		sigpdf = RooFFTConvPdf("sig_pdf_%s"%channel,"sig_pdf_%s"%channel,mass,bw,cb)
-		getattr(ws,'import')(sigpdf,ROOT.RooCmdArg())
-		
-	else:
-		params = config.getResolution(massVal)
-		ws.factory("Voigtian::sig_pdf_%s(mass_%s, peak_scaled%s,  %.3f, res_scaled%s)"%(channel,channel,peakName,massVal*width,peakName))
-	setIntegrator(ws,'sig_pdf_%s'%channel)
-
-	useShapeUncert = False
-	ws = config.loadBackgroundShape(ws,useShapeUncert)
-
-        with open(dataFile) as f:
-                masses = f.readlines()
-	if config.nBkg == -1:
-        	with open(dataFile) as f:
-                	masses = f.readlines()
-		nBkg = len(masses)
-	else:
-		nBkg = config.nBkg
-	nBkg = nBkg*scale
-	dataSet = ws.pdf("bkgpdf_fullRange").generate(ROOT.RooArgSet(ws.var("massFullRange")),nBkg)
-	if nEvents > 0:
-		nSignal = int(round(nEvents*config.signalEff(massVal)))
-		dataSet.append(ws.pdf("sig_pdf").generate(ROOT.RooArgSet(ws.var("massFullRange")),nSignal))
-
-	masses = []
-	for i in range(0,dataSet.numEntries()):
-		masses.append(dataSet.get(i).getRealValue("massFullRange"))
-	if "toy" in tag:
-		f = open("%s%s.txt"%(name,tag), 'w')
- 	elif CB:
-		f = open("%s_%d_%.3f_%d_scale%d_CB%s.txt"%(name,massVal,width,nEvents,scale,tag), 'w')
-	else:	
-		f = open("%s_%d_%.3f_%d%s_scale%d.txt"%(name,massVal,width,nEvents,scale,tag), 'w')
-	for mass in masses:
-		f.write("%.4f\n" % mass)
-	f.close()
-
-def createWS(massVal,minNrEv,name,channel,width,correlateMass,dataFile="",CB=True,write=True,useShapeUncert=False):
-	ROOT.RooMsgService.instance().setGlobalKillBelow(RooFit.FATAL)
-	import glob
-	for f in glob.glob("userfuncs/*.cxx"):
-		ROOT.gSystem.Load(f)
-                configName ="channelConfig_%s"%channel
-        config =  __import__(configName)
-	
-	if dataFile == "":
-		dataFile = config.dataFile
-
-	if not correlateMass:
-		peakName = "_%s"%channel 
-	else:
-		peakName = ""
-	#if "electron" in name:
-	if 'electron' in channel:
-		lowestMass = lowMass['ele']
-	elif 'muon' in channel:
-		lowestMass = lowMass['mu']
-
-
-	effWidth = width + config.getResolution(massVal)['res']
-	#else:	
-	#	effWidth = width + config.getResolution(massVal)
-	from tools import getMassRange
-	massLow, massHigh = getMassRange(massVal,minNrEv,effWidth,dataFile,lowestMass)	
-	#massLow = 120
-	#massHigh = 400	
-	ws = RooWorkspace(channel)
-        massFullRange = RooRealVar('massFullRange','massFullRange',massVal, lowestMass, 6000 )
-        getattr(ws,'import')(massFullRange,ROOT.RooCmdArg())
-
-	mass = RooRealVar('mass_%s'%channel,'mass_%s'%channel,massVal, massLow, massHigh )
-	getattr(ws,'import')(mass,ROOT.RooCmdArg())
-	
-	peak = RooRealVar("peak%s"%peakName,"peak%s"%peakName,massVal, massVal, massVal)
-	peak.setConstant()
-	getattr(ws,'import')(peak,ROOT.RooCmdArg())
-	
-	### mass scale uncertainty defined on peak position
-	beta_peak = RooRealVar('beta_peak%s'%peakName,'beta_peak%s'%peakName,0,-5,5)
-	getattr(ws,'import')(beta_peak,ROOT.RooCmdArg())
-	scaleUncert = 1. + config.provideUncertainties(massVal)["massScale"]
-	peak_kappa = RooRealVar('peak%s_kappa'%peakName,'peak%s_kappa'%peakName,scaleUncert)
-	peak_kappa.setConstant()
-	getattr(ws,'import')(peak_kappa,ROOT.RooCmdArg())
-	ws.factory("PowFunc::peak_nuis%s(peak%s_kappa, beta_peak%s)"%(peakName,peakName,peakName))
-	ws.factory("prod::peak_scaled%s(peak%s, peak_nuis%s)"%(peakName,peakName,peakName))
-
-	### load resolution parameters and set up log normal for systematic on core resolution
-	params = config.getResolution(massVal)
-	if 'dielectron_Moriond2017' in channel and massVal > 2300:
-		res = RooRealVar("res%s"%peakName,"res%s"%peakName, massVal*params['res'])
-		res.setConstant()
-		getattr(ws,'import')(res,ROOT.RooCmdArg())
-
-		alpha = RooRealVar("alpha_%s"%channel,"alpha_%s"%channel,params['alpha'])
-		alpha.setConstant()
-		getattr(ws,'import')(alpha,ROOT.RooCmdArg())
-		n = RooRealVar("n_%s"%channel,"n_%s"%channel,params['n'])
-		n.setConstant()
-		getattr(ws,'import')(n,ROOT.RooCmdArg())
-
-
-
-		beta_res = RooRealVar('beta_res%s'%peakName,'beta_res%s'%peakName,0,-5,5)
-		getattr(ws,'import')(beta_res,ROOT.RooCmdArg())
-		resUncert = 1. + config.provideUncertainties(massVal)["res"]
-		res_kappa = RooRealVar('res%s_kappa'%peakName,'res%s_kappa'%peakName,resUncert)
-		res_kappa.setConstant()
-		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
-		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
-		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
-	elif 'dielectron_2017' in channel:
+	elif 'dielectron_2017' in channel or 'dimuon_2017' in channel or 'dimuon_2018' in channel:
 		res = RooRealVar("res%s"%peakName,"res%s"%peakName, massVal*params['res'])
 		res.setConstant()
 		getattr(ws,'import')(res,ROOT.RooCmdArg())
@@ -282,18 +132,184 @@ def createWS(massVal,minNrEv,name,channel,width,correlateMass,dataFile="",CB=Tru
 		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
 		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
 		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
-	if CB:
-		
-		ws.factory("BreitWigner::bw(mass_%s, peak_scaled%s, %.3f)"%(channel,peakName,massVal*width))
 
-		if 'dielectron_2017' in channel:
+	if CB:
+		ws.factory("BreitWigner::bw(massFullRange, peak, %.3f)"%(massVal*width))#	
+		if 'dielectron_2017' in channel or 'dimuon_2017' or 'dimuon_2018':
 			ws.factory("RooDCBShape::cb(mass_%s, mean[0.0], res_scaled%s, alphaL_%s, alphaR_%s, nL_%s, nR_%s)"%(channel,peakName,channel,channel,channel,channel))
 		if 'dielectron_Moriond2017' in channel and massVal > 2300:
 			ws.factory("RooCBShape::cb(mass_%s, mean[0.0], res_scaled%s, alpha_%s, n_%s)"%(channel,peakName,channel,channel))
 		else:	
-			ws.factory("RooCruijff::cb(mass_%s, mean[0.0], res_scaled%s, res_scaled%s, alphaL_%s, alphaR_%s)"%(channel,peakName,peakName,channel,channel))
+			ws.factory("RooCruijff::cb(massFullRange, mean[0.0], res_scaled%s, res_scaled%s, alphaL_%s, alphaR_%s)"%(peakName,peakName,channel,channel))
 		bw = ws.pdf("bw")
 		cb = ws.pdf("cb")
+		mass.setBins(20000,"cache")
+		mass.setMin("cache",0)
+		mass.setMax("cache",12500); ## need to be adjusted to be higher than limit setting
+		sigpdf = RooFFTConvPdf("sig_pdf_%s"%channel,"sig_pdf_%s"%channel,mass,bw,cb)
+		getattr(ws,'import')(sigpdf,ROOT.RooCmdArg())
+		
+	else:
+		params = config.getResolution(massVal)
+		ws.factory("Voigtian::sig_pdf_%s(mass_%s, peak_scaled%s,  %.3f, res_scaled%s)"%(channel,channel,peakName,massVal*width,peakName))
+	setIntegrator(ws,'sig_pdf_%s'%channel)
+
+	useShapeUncert = False
+	ws = config.loadBackgroundShape(ws,useShapeUncert)
+
+        with open(dataFile) as f:
+                masses = f.readlines()
+	if config.nBkg == -1:
+        	with open(dataFile) as f:
+                	masses = f.readlines()
+		nBkg = len(masses)
+	else:
+		nBkg = config.nBkg
+	nBkg = nBkg*scale
+	dataSet = ws.pdf("bkgpdf_fullRange").generate(ROOT.RooArgSet(ws.var("massFullRange")),nBkg)
+	if nEvents > 0:
+		nSignal = int(round(nEvents*config.signalEff(massVal)))
+		dataSet.append(ws.pdf("sig_pdf").generate(ROOT.RooArgSet(ws.var("massFullRange")),nSignal))
+
+	masses = []
+	for i in range(0,dataSet.numEntries()):
+		masses.append(dataSet.get(i).getRealValue("massFullRange"))
+	if "toy" in tag:
+		f = open("%s%s.txt"%(name,tag), 'w')
+ 	elif CB:
+		f = open("%s_%d_%.3f_%d_scale%d_CB%s.txt"%(name,massVal,width,nEvents,scale,tag), 'w')
+	else:	
+		f = open("%s_%d_%.3f_%d%s_scale%d.txt"%(name,massVal,width,nEvents,scale,tag), 'w')
+	for mass in masses:
+		f.write("%.4f\n" % mass)
+	f.close()
+
+def createWS(massVal,minNrEv,name,channel,width,correlateMass,dataFile="",CB=True,write=True,useShapeUncert=False):
+	ROOT.RooMsgService.instance().setGlobalKillBelow(RooFit.FATAL)
+	import glob
+	for f in glob.glob("userfuncs/*.cxx"):
+		ROOT.gSystem.Load(f)
+        configName ="channelConfig_%s"%channel
+        config =  __import__(configName)
+	
+	if dataFile == "":
+		dataFile = config.dataFile
+
+	if not correlateMass:
+		peakName = "_%s"%channel 
+	else:
+		peakName = ""
+	#if "electron" in name:
+	if 'electron' in channel:
+		lowestMass = lowMass['ele']
+	elif 'muon' in channel:
+		lowestMass = lowMass['mu']
+
+
+	params = config.getResolution(massVal)
+	effWidth = width + params['res']
+	#else:	
+	#	effWidth = width + config.getResolution(massVal)
+	from tools import getMassRange
+	massLow, massHigh = getMassRange(massVal,minNrEv,effWidth,dataFile,lowestMass)	
+	#massLow = 120
+	#massHigh = 400
+	ws = RooWorkspace(channel)
+	ws.autoImportClassCode(True)
+        massFullRange = RooRealVar('massFullRange','massFullRange',massVal, lowestMass, 6000 )
+        getattr(ws,'import')(massFullRange,ROOT.RooCmdArg())
+
+	mass = RooRealVar('mass_%s'%channel,'mass_%s'%channel,massVal, massLow, massHigh )
+	getattr(ws,'import')(mass,ROOT.RooCmdArg())
+	
+	peak = RooRealVar("peak%s"%peakName,"peak%s"%peakName,massVal, massVal, massVal)
+	peak.setConstant()
+	getattr(ws,'import')(peak,ROOT.RooCmdArg())
+	
+	### mass scale uncertainty defined on peak position
+	beta_peak = RooRealVar('beta_peak%s'%peakName,'beta_peak%s'%peakName,0,-5,5)
+	getattr(ws,'import')(beta_peak,ROOT.RooCmdArg())
+	scaleUncert = 1. + config.provideUncertainties(massVal)["massScale"]
+	peak_kappa = RooRealVar('peak%s_kappa'%peakName,'peak%s_kappa'%peakName,scaleUncert)
+	peak_kappa.setConstant()
+	getattr(ws,'import')(peak_kappa,ROOT.RooCmdArg())
+	ws.factory("PowFunc::peak_nuis%s(peak%s_kappa, beta_peak%s)"%(peakName,peakName,peakName))
+	ws.factory("prod::peak_scaled%s(peak%s, peak_nuis%s)"%(peakName,peakName,peakName))
+
+	### load resolution parameters and set up log normal for systematic on core resolution
+	if 'dimuon_2017' in channel or 'dimuon_2018' in channel or 'dielectron' in channel:
+		res = RooRealVar("res%s"%peakName,"res%s"%peakName, massVal*params['res'])
+		res.setConstant()
+		getattr(ws,'import')(res,ROOT.RooCmdArg())
+
+		mean = RooRealVar("mean%s"%peakName,"mean%s"%peakName, params['scale'])
+		mean.setConstant()
+		getattr(ws,'import')(mean,ROOT.RooCmdArg())
+
+		alphaL = RooRealVar("alphaL_%s"%channel,"alphaL_%s"%channel,params['alphaL'])
+		alphaL.setConstant()
+		getattr(ws,'import')(alphaL,ROOT.RooCmdArg())
+
+		nL = RooRealVar("nL_%s"%channel,"nL_%s"%channel,params['nL'])
+		nL.setConstant()
+		getattr(ws,'import')(nL,ROOT.RooCmdArg())
+
+		alphaR = RooRealVar("alphaR_%s"%channel,"alphaR_%s"%channel,params['alphaR'])
+		alphaR.setConstant()
+		getattr(ws,'import')(alphaR,ROOT.RooCmdArg())
+		if params['nR'] < 0:
+			params['nR'] = 0
+		nR = RooRealVar("nR_%s"%channel,"nR_%s"%channel,params['nR'])
+		nR.setConstant()
+		getattr(ws,'import')(nR,ROOT.RooCmdArg())
+
+
+
+		beta_res = RooRealVar('beta_res%s'%peakName,'beta_res%s'%peakName,0,-5,5)
+		getattr(ws,'import')(beta_res,ROOT.RooCmdArg())
+		resUncert = 1. + config.provideUncertainties(massVal)["res"]
+		res_kappa = RooRealVar('res%s_kappa'%peakName,'res%s_kappa'%peakName,resUncert)
+		res_kappa.setConstant()
+		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
+		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
+		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
+
+
+
+
+	else:
+		res = RooRealVar("res%s"%peakName,"res%s"%peakName, massVal*params['res'])
+        	if params['alphaR'] < 0:
+        		params['alphaR'] = 0
+		res.setConstant()
+		getattr(ws,'import')(res,ROOT.RooCmdArg())
+
+		alphaL = RooRealVar("alphaL_%s"%channel,"alphaL_%s"%channel,params['alphaL'])
+		alphaL.setConstant()
+		getattr(ws,'import')(alphaL,ROOT.RooCmdArg())
+
+		alphaR = RooRealVar("alphaR_%s"%channel,"alphaR_%s"%channel, params['alphaR'])
+		alphaR.setConstant()
+		getattr(ws,'import')(alphaR,ROOT.RooCmdArg())
+
+		beta_res = RooRealVar('beta_res%s'%peakName,'beta_res%s'%peakName,0,-5,5)
+		getattr(ws,'import')(beta_res,ROOT.RooCmdArg())
+		resUncert = 1. + config.provideUncertainties(massVal)["res"]
+		res_kappa = RooRealVar('res%s_kappa'%peakName,'res%s_kappa'%peakName,resUncert)
+		res_kappa.setConstant()
+		getattr(ws,'import')(res_kappa,ROOT.RooCmdArg())
+		ws.factory("PowFunc::res_nuis%s(res%s_kappa, beta_res%s)"%(peakName,peakName,peakName))
+		ws.factory("prod::res_scaled%s(res%s, res_nuis%s)"%(peakName,peakName,peakName))
+	if CB:
+		
+		ws.factory("BreitWigner::bw_%s(mass_%s, peak_scaled%s, %.3f)"%(channel,channel,peakName,massVal*width))
+
+		if 'dimuon_2017' in channel or 'dimuon_2018' in channel or 'dielectron' in channel:
+			ws.factory("RooDCBShape::cb_%s(mass_%s, mean[0.0], res_scaled%s, alphaL_%s, alphaR_%s, nL_%s, nR_%s)"%(channel,channel,peakName,channel,channel,channel,channel))
+		else:
+			ws.factory("RooCruijff::cb_%s(mass_%s, mean[0.0], res_scaled%s, res_scaled%s, alphaL_%s, alphaR_%s)"%(channel,channel,peakName,peakName,channel,channel))
+		bw = ws.pdf("bw_%s"%channel)
+		cb = ws.pdf("cb_%s"%channel)
 		mass.setBins(20000,"cache")
 		mass.setMin("cache",0)
 		mass.setMax("cache",12500); ## need to be adjusted to be higher than limit setting
@@ -312,8 +328,9 @@ def createWS(massVal,minNrEv,name,channel,width,correlateMass,dataFile="",CB=Tru
 	ds.SetName('data_%s'%channel)
 	ds.SetTitle('data_%s'%channel)
 	getattr(ws,'import')(ds,ROOT.RooCmdArg())
-	ws.addClassDeclImportDir("shapes/")	
-	ws.importClassCode()	
+	ws.addClassDeclImportDir("userfuncs/")	
+	#ws.importClassCode("userfuncs/ZPrimeEleBkgPdf3*")	
+	#ws.Print()
 	if config.nBkg == -1:
         	with open(dataFile) as f:
                 	masses = f.readlines()
@@ -323,6 +340,7 @@ def createWS(massVal,minNrEv,name,channel,width,correlateMass,dataFile="",CB=Tru
 	if write:
 		ws.writeToFile("%s.root"%name,True)
         	from tools import getBkgEstInWindow
+
         	return getBkgEstInWindow(ws,massLow,massHigh,nBkgTotal)
 	else:
 		return ws
@@ -444,7 +462,7 @@ def getStatUncertHistogram(hist,name,up=False):
 		if up:
 			uncertHist.SetBinContent(i,hist.GetBinContent(i)+hist.GetBinError(i))	
 		else:
-			uncertHist.SetBinContent(i,hist.GetBinContent(i)-hist.GetBinError(i))	
+			uncertHist.SetBinContent(i,max(0,hist.GetBinContent(i)-hist.GetBinError(i)))	
 	return uncertHist 
 
 def getPDFUncertHistogram(hist,name,pdf,up=False):
@@ -455,6 +473,7 @@ def getPDFUncertHistogram(hist,name,pdf,up=False):
 		else:
 			uncertHist.SetBinContent(i,hist.GetBinContent(i)-hist.GetBinContent(i)*pdf[i-1])	
 	return uncertHist
+
 
 def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	ROOT.RooMsgService.instance().setGlobalKillBelow(RooFit.FATAL)
@@ -467,10 +486,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         scanConfig =  __import__(scanConfigName)
 	
         binning = scanConfig.binning
-	if dataFile == "":
-		dataFile = config.dataFile
-	with open(dataFile) as f:
-    		events = f.readlines()
 
 	if 'electron' in channel:
 		lowestMass = 400
@@ -479,24 +494,20 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         from array import array
  
 
-	ws = RooWorkspace(channel)
 
-	mass = RooRealVar('massFullRange','massFullRange',1000, lowestMass, 3500 )
-	getattr(ws,'import')(mass,ROOT.RooCmdArg())
-	
-	
-#	ws = config.loadBackgroundShape(ws,useShapeUncert=False)
-#	setIntegrator(ws,'bkgpdf_fullRange')
+	if 'ADD' in scanConfigName:
+		model = 'ADD'
+	else: 
+		model = 'CI'
 
 	inputFileName = "input/inputsCI/inputsCI_%s.root"%(channel)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
-
 	import pickle 
 	if "muon" in channel:
-		pkl = open("input/inputsCI/signalYields_default.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_default.pkl"%model, "r")
 		signalYields_default = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_scaleDown.pkl"%model, "r")
 		signalYields_scaleDown = pickle.load(pkl)
 
 #		pkl = open("input/inputsCI/signalYields_piledown.pkl", "r")
@@ -505,21 +516,21 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 #		pkl = open("input/inputsCI/signalYields_pileup.pkl", "r")
 #		signalYields_pileup = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_resolution.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_resolution.pkl"%model, "r")
 		signalYields_resolution = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_ID.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_ID.pkl"%model, "r")
 		signalYields_ID = pickle.load(pkl)
 	elif "electron" in channel:
-		pkl = open("input/inputsCI/signalYieldsEle_default.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_default.pkl"%model, "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_scaleUp.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleUp.pkl"%model, "r")
 		signalYields_scaleUp = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleDown.pkl"%model, "r")
 		signalYields_scaleDown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_piledown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_piledown.pkl"%model, "r")
 		signalYields_piledown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_pileup.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_pileup.pkl"%model, "r")
 		signalYields_pileup = pickle.load(pkl)
 
 	histFile = ROOT.TFile("%s.root"%name, "RECREATE")	
@@ -544,7 +555,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 		bkgHistOtherScaleUpTemp = inputFile.Get("bkgHistOtherScaleUp_%s"%channel)
 
 	bkgHistJetsTemp = inputFile.Get("bkgHistJets_%s"%channel)
-	
 	pdfUncert = [0.01,0.0125,0.02,0.035,0.065,0.10]
 	pdfUncertDY = [0.0133126577202494, 0.0147788328624159, 0.01842209757115, 0.0243644300786998, 0.039572839847093, 0.1144248733154136]
 	pdfUncertOther = [0.0358232181870253, 0.088892531404347, 0.1254268509362337, 0.1736824180528946, 0.2024257617076786, 0.3369525304968204]
@@ -557,7 +567,6 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	pdfName = "pdf"
 	IDName = "ID"
 	PUName = "PU"
-
 
 	bkgHistDY = getRebinnedHistogram(bkgHistDYTemp,binning,"bkgHistDY_%s"%channel)
 
@@ -599,7 +608,7 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         bkgHistOtherPDFUp = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sUp"%(pdfName), pdfUncertOther,True)
 
 	
-        bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
+	bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
 
         sigHist = ROOT.TH1F("sigHist_%s"%channel,"sigHist_%s"%channel,len(binning)-1,array('f',binning))
         sigHistStatUp = ROOT.TH1F("sigHist_%s_%sUp"%(statName,channel),"sigHistStat_%s_%sUp"%(channel,statName),len(binning)-1,array('f',binning))
@@ -655,6 +664,37 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	bkgIntegralOther = bkgHistOther.Integral()		
 	bkgIntegralJets = bkgHistJets.Integral()		
 	sigIntegral = sigHist.Integral()
+	if sigIntegral == 0.:
+		sigIntegral = 0.001
+		sigHist.SetBinContent(len(binning)-1,0.001)
+	if sigHistPDFUp.Integral() == 0:
+		sigHistPDFUp.SetBinContent(len(binning)-1,0.001)
+	if sigHistPDFDown.Integral() == 0:
+		sigHistPDFDown.SetBinContent(len(binning)-1,0.001)
+	if sigHistStatUp.Integral() == 0:
+		sigHistStatUp.SetBinContent(len(binning)-1,0.001)
+	if sigHistStatDown.Integral() == 0:
+		sigHistStatDown.SetBinContent(len(binning)-1,0.001)
+	if sigHistScaleDown.Integral() == 0:
+		sigHistScaleDown.SetBinContent(len(binning)-1,0.001)
+	if "muon" in channel:
+		if sigHistIDUp.Integral() == 0:
+			sigHistIDUp.SetBinContent(len(binning)-1,0.001)
+		if sigHistIDDown.Integral() == 0:	
+			sigHistIDDown.SetBinContent(len(binning)-1,0.001)
+		if sigHistSmearUp.Integral() == 0:
+			sigHistSmearUp.SetBinContent(len(binning)-1,0.001)
+		if sigHistSmearDown.Integral() == 0:	
+			sigHistSmearDown.SetBinContent(len(binning)-1,0.001)
+		if sigHistScaleUp.Integral() == 0:
+			sigHistScaleUp.SetBinContent(len(binning)-1,0.001)
+	if "electron" in channel:
+		if sigHistPUUp.Integral() == 0:
+			sigHistPUUp.SetBinContent(len(binning)-1,0.001)
+		if not sigHistPUDown.Integral() > 0.0:
+			sigHistPUDown.SetBinContent(len(binning)-1,0.001)
+		if sigHistScaleUp.Integral() == 0:
+			sigHistScaleUp.SetBinContent(len(binning)-1,0.001)
 
 	histFile.Write()
 	histFile.Close()
@@ -687,21 +727,21 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         from array import array
  
 
-	ws = RooWorkspace(channel)
+	if 'ADD' in scanConfigName:
+		model = 'ADD'
+	else: 
+		model = 'CI'
 
-	mass = RooRealVar('massFullRange','massFullRange',1000, lowestMass, 3500 )
-	getattr(ws,'import')(mass,ROOT.RooCmdArg())
-	
-	
+
 	inputFileName = "input/inputsCI/inputsCI_%s.root"%(channel)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
 
 	import pickle 
 	if "muon" in channel:
-		pkl = open("input/inputsCI/signalYields_default.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_default.pkl"%model, "r")
 		signalYields_default = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_scaleDown.pkl"%model, "r")
 		signalYields_scaleDown = pickle.load(pkl)
 
 		#pkl = open("input/inputsCI/signalYields_piledown.pkl", "r")
@@ -710,21 +750,21 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 		#pkl = open("input/inputsCI/signalYields_pileup.pkl", "r")
 		#signalYields_pileup = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_resolution.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_resolution.pkl"%model, "r")
 		signalYields_resolution = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYields_ID.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYields_ID.pkl"%model, "r")
 		signalYields_ID = pickle.load(pkl)
 	elif "electron" in channel:
-		pkl = open("input/inputsCI/signalYieldsEle_default.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_default.pkl"%model, "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_scaleUp.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleUp.pkl"%model, "r")
 		signalYields_scaleUp = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleDown.pkl"%model, "r")
 		signalYields_scaleDown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_piledown.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_piledown.pkl"%model, "r")
 		signalYields_piledown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsEle_pileup.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle_pileup.pkl"%model, "r")
 		signalYields_pileup = pickle.load(pkl)
 
 
@@ -803,8 +843,7 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         bkgHistOtherPDFDown = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sDown"%(pdfName), pdfUncertOther)
         bkgHistOtherPDFUp = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sUp"%(pdfName), pdfUncertOther,True)
 
-	
-        bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
+	bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
 
         sigHist = ROOT.TH1F("sigHist_%s"%channel,"sigHist_%s"%channel,len(binning)-1,array('f',binning))
         sigHistStatUp = ROOT.TH1F("sigHist_%s_%sUp"%(statName,channel),"sigHistStat_%s_%sUp"%(channel,statName),len(binning)-1,array('f',binning))
@@ -897,7 +936,7 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 			intHistPDFDown.SetBinContent(index+1,val-val*pdfUncert[index])
 			intHist.SetBinContent(index+1,val)
 			intHistStatUp.SetBinContent(index+1,val+val*err)
-			intHistStatDown.SetBinContent(index+1,val-val*err)
+			intHistStatDown.SetBinContent(index+1,max(0,val-val*err))
 			val = signalYields_scaleDown[label][str(index)][0]
 			val = max(0,val)
 			intHistScaleDown.SetBinContent(index+1,val)
@@ -975,32 +1014,32 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	import pickle
 
 	if "muon" in channel:
-		pkl = open("input/inputsCI/signalYieldsSingleBin_default.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_default.pkl", "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsSingleBin_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_scaleDown.pkl", "r")
 		signalYields_scaleDown = pickle.load(pkl)
 
-#		pkl = open("input/inputsCI/signalYieldsSingleBin_piledown.pkl", "r")
-#		signalYields_piledown = pickle.load(pkl)
+		#pkl = open("input/inputsCI/CIsignalYieldsSingleBin_piledown.pkl", "r")
+		#signalYields_piledown = pickle.load(pkl)
 
 #		pkl = open("input/inputsCI/signalYieldsSingleBin_pileup.pkl", "r")
 #		signalYields_pileup = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYieldsSingleBin_resolution.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_resolution.pkl", "r")
 		signalYields_resolution = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/signalYieldsSingleBin_ID.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_ID.pkl", "r")
 		signalYields_ID = pickle.load(pkl)
 	elif "electron" in channel:
-		pkl = open("input/inputsCI/signalYieldsSingleBinEle_default.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_default.pkl", "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsSingleBinEle_scaleUp.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_scaleUp.pkl", "r")
 		signalYields_scaleUp = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsSingleBinEle_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_scaleDown.pkl", "r")
 		signalYields_scaleDown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsSingleBinEle_piledown.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_piledown.pkl", "r")
 		signalYields_piledown = pickle.load(pkl)
-		pkl = open("input/inputsCI/signalYieldsSingleBinEle_pileup.pkl", "r")
+		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_pileup.pkl", "r")
 		signalYields_pileup = pickle.load(pkl)
 	inputFileName = "input/inputsCI/inputsCI_%s.root"%(channel)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
@@ -1065,7 +1104,7 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 			result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])]
 			result["bkgDYPU"] =[ abs(bkgHistDYPUUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYPUDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])]
 	if "muon" in channel:
-
+		print abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1))
 		result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , 1.]
 		if abs(bkgHistDYSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) >=1:
 			result["bkgDYRes"] = abs(bkgHistDYSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])
@@ -1088,13 +1127,17 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	
 	if "electron" in channel:
 			if result["bkgOther"] > 0:
-				result["bkgOtherScale"] =[ abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
+				if abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)) > 0:
+					result["bkgOtherScale"] = [ abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
+				else:
+					result["bkgOtherScale"] = [ 1.0, abs(bkgHistOtherScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
+
+				result["bkgOtherPU"] =[ abs(bkgHistOtherPUUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherPUDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
 			else:
 				result["bkgOtherScale"] = [1.,1.]
-
-			result["bkgOtherPU"] =[ 1+abs(bkgHistOtherPUUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , 1+abs(bkgHistOtherPUDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])]
+				result["bkgOtherPU"] =[ 1.,1.]
 	if "muon" in channel:
-		if result["bkgOther"] > 0:
+		if result["bkgOther"] > 0 and abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)) > 0:
 			result["bkgOtherScale"] =[ abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , 1.]
 		else:
 			result["bkgOtherScale"] =[1.,1.]

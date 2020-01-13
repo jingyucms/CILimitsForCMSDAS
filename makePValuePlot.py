@@ -102,10 +102,10 @@ def main():
 		plotPad.UseCurrentStyle()
 		plotPad.Draw()	
 		plotPad.cd()
-		plotPad.DrawFrame(200,5e-4,3000,10,";M [GeV]; local p-Value")
+		plotPad.DrawFrame(200,1e-4,4000,10,";M [GeV]; local p-Value")
 		plotPad.SetLogy()
 	    	#ROOT.gStyle.SetLabelXSize(0.04)
-		leg = ROOT.TLegend(0.32, 0.67, 0.9, 0.875,"","brNDC")
+		leg = ROOT.TLegend(0.32, 0.72, 0.9, 0.875,"","brNDC")
 		leg.SetFillColor(10)
 		leg.SetLineColor(10)
 		leg.SetShadowColor(0)
@@ -164,11 +164,11 @@ def main():
 		chan = config.leptons
 
          	if (chan=="mumu"): 
-            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"139.7 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
         	elif (chan=="elel"):
-            		plLumi=TPaveLabel(.65,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"136.8 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
-            		plLumi=TPaveLabel(.27,.885,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"136.8 fb^{-1} (13 TeV, ee) + 139.7 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
 
 	    	plLumi.SetTextSize(0.5)
     		plLumi.SetTextFont(42)
@@ -180,33 +180,33 @@ def main():
 		cmsExtra = "Preliminary"
 		latexCMS.DrawLatex(0.14,0.81,"CMS")
 		if "Simulation" in cmsExtra:
-			yLabelPos = 0.81	
+			yLabelPos = 0.78	
 		else:
-			yLabelPos = 0.84	
+			yLabelPos = 0.78	
 		
-#		latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))			
+		latexCMSExtra.DrawLatex(0.14,yLabelPos,"%s"%(cmsExtra))			
 		
-		ZeroSigmaLine = ROOT.TLine(200,0.5,3000,0.5)
+		ZeroSigmaLine = ROOT.TLine(200,0.5,4000,0.5)
 		ZeroSigmaLine.SetLineStyle(ROOT.kDashed)
 		ZeroSigmaLine.Draw("same")
 		
-		OneSigmaLine = ROOT.TLine(200,0.317/2,3000,0.317/2)
+		OneSigmaLine = ROOT.TLine(200,0.317/2,4000,0.317/2)
 		OneSigmaLine.SetLineStyle(ROOT.kDashed)
 		OneSigmaLine.Draw("same")
 		
-		TwoSigmaLine = ROOT.TLine(200,0.0455/2,3000,0.0455/2)
+		TwoSigmaLine = ROOT.TLine(200,0.0455/2,4000,0.0455/2)
 		TwoSigmaLine.SetLineStyle(ROOT.kDashed)
 		TwoSigmaLine.Draw("same")
 		
-		ThreeSigmaLine = ROOT.TLine(200,0.0027/2,3000,0.0027/2)
+		ThreeSigmaLine = ROOT.TLine(200,0.0027/2,4000,0.0027/2)
 		ThreeSigmaLine.SetLineStyle(ROOT.kDashed)
 		ThreeSigmaLine.Draw("same")
 		
-		FourSigmaLine = ROOT.TLine(200,0.00006/2,3000,0.00006/2)
+		FourSigmaLine = ROOT.TLine(200,0.00006/2,4000,0.00006/2)
 		FourSigmaLine.SetLineStyle(ROOT.kDashed)
 		#~ FourSigmaLine.Draw("same")
 		
-		FiveSigmaLine = ROOT.TLine(200,3e-07,3000,3e-07)
+		FiveSigmaLine = ROOT.TLine(200,3e-07,4000,3e-07)
 		FiveSigmaLine.SetLineStyle(ROOT.kDashed)
 		#~ FiveSigmaLine.Draw("same")
 		
@@ -214,11 +214,11 @@ def main():
 		latex.SetTextFont(42)
 		latex.SetTextAlign(31)
 		latex.SetTextSize(0.04)
-		#~ latex.SetNDC(True)		
-		latex.DrawLatex(3150, 0.5, "0#sigma")
-		latex.DrawLatex(3150, 0.317/2, "1#sigma")
-		latex.DrawLatex(3150, 0.0455/2, "2#sigma")
-		latex.DrawLatex(3150, 0.0027/2, "3#sigma")
+		#~ latex.SetNDC(Tru78		
+		latex.DrawLatex(4150, 0.5, "0#sigma")
+		latex.DrawLatex(4150, 0.317/2, "1#sigma")
+		latex.DrawLatex(4150, 0.0455/2, "2#sigma")
+		latex.DrawLatex(4150, 0.0027/2, "3#sigma")
 		#~ latex.DrawLatex(4200, 0.00006/2, "4#sigma")
 		#~ latex.DrawLatex(4200, 3e-7, "5#sigma")
 	

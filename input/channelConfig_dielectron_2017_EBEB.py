@@ -3,11 +3,11 @@ ROOT.gROOT.SetBatch(True)
 ROOT.gErrorIgnoreLevel = 1 
 from ROOT import *
 from math import sqrt
-from resolution_dielectron2017_cfg import DCB_para
+from resolution_cfg_2017 import DCB_para
 #nBkg = -1
 nBkg = -1 
 #### to be updated!
-dataFile = "input/data_rereco_2017_BB.txt"
+dataFile = "input/eventList_ele_2017_BB.txt"
 
 def addBkgUncertPrior(ws,label,channel,uncert):
 
@@ -24,8 +24,8 @@ def addBkgUncertPrior(ws,label,channel,uncert):
 
 
 def provideSignalScaling(mass,spin2=False):
-	nz   =  6156571.2 
-	nsig_scale = 1./0.0811 # signal efficiency at z peak       
+	nz   =  6239976 
+	nsig_scale = 1./0.079562 # signal efficiency at z peak       
 	eff = signalEff(mass,spin2)
 	result = (nsig_scale*nz*eff)
 
@@ -33,11 +33,11 @@ def provideSignalScaling(mass,spin2=False):
 
 def signalEff(mass,spin2=False):
 
-	eff_a     = 5.79344e-01
-	eff_b     = -4.08210e+02
-	eff_c     = 3.04672e+02
-	eff_d     = 5.56309e+04
-	eff_e	  = 9.90695e+04
+	eff_a     = 0.5849
+	eff_b     = -404.2
+	eff_c     = 277.7
+	eff_d     = 5.64e+04
+	eff_e	  = 9.12e+04
 	if spin2:
 		eff_a = 0.5043
 		eff_b = 1173.
@@ -59,11 +59,36 @@ def provideUncertainties(mass):
 	result["massScale"] = 0.02
 	result ["bkgUncert"] = 1.4
 	result ["res"] = 0.0
+	result ["reco"] = [0.0]
 
- 	result["bkgParams"] = {"bkg_a2":0.009568182457324447,"bkg_b2":0.008731706597427122,"bkg_c2":0.,"bkg_d2":0.0429026179995323,"bkg_e2":0.001192623872401621,"bkg_a":0.01058582534117669,"bkg_b":0.019704726251754796,"bkg_c":0.0,"bkg_d":0.2392250030721337,"bkg_e":0.001814842499245725}	
+ 	result["bkgParams"] = {"bkg_a":0.0452695063240854123,"bkg_b":0.0910616600953698119,"bkg_c":0.0,"bkg_d":0.7378842405158194673,"bkg_e":0.0103467319562306360,"bkg_a2":0.0449338451923935317,"bkg_b2":0.0181008983866938825,"bkg_c2":0.0,"bkg_d2":0.0605705315596520993,"bkg_e2":0.0078219257383692307}  
+
+ 	# result["bkgParams"] = {"bkg_a2":0.05950774105678628,"bkg_b2":0.1088791919642546,"bkg_c2":0.,"bkg_d2":0.8194736146885938,"bkg_e2":0.012217590102205488,"bkg_a":0.18610984303724476,"bkg_b":0.043113993378416454,"bkg_c":0.0,"bkg_d":0.17196068682193055,"bkg_e":0.015476454085197407}	
  	#result["bkgParams"] = {"bkg_a":0.24391455519910865,"bkg_b":0.03963999446145325,"bkg_c":44.56738363916309,"bkg_d":0.35495154369249793,"bkg_e":0.001701404156849987,"bkg_a2":0.1575451905377131,"bkg_b2":0.04733064954639549,"bkg_c2":0.93272729080101,"bkg_d2":0.6290363984210399,"bkg_e2":0.0024446111862020054}	
 	return result
 
+def provideCorrelations():
+	result = {}
+	''' Combine correlates uncertainties that have the same name. So wa hve to adjust the names to achieve what we want. 
+		1) put the full channel name. That will make it uncorrelated with all other channels
+		2) keep the channel name but remove the last bit: will correlate between the two subcategories within a year
+		3) Just keep the dimuon or dielectron name, so we correlate between the years
+		4) To correlate some specific combination of uncertainties, come up with a name and add it to all releavent channel configs
+	'''
+	#result['sigEff'] = 'dielectron' 
+	#result['massScale'] = 'dielectron' 
+	#result['bkgUncert'] = 'dielectron_2017_EBEB' 
+	#result['res'] = 'dielectron' 
+	#result['bkgParams'] = 'dielectron_2017_EBEB' 
+	result['sigEff'] = 'dielectron' 
+	result['massScale'] = 'dielectron_2017_EBEB' 
+	result['bkgUncert'] = 'dielectron_2017_EBEB' 
+	result['res'] = 'dielectron_2017_EBEB' 
+	result['reco'] = 'dielectron_2017_EBEB' 
+	result['bkgParams'] = 'dielectron_2017_EBEB' 
+
+
+	return result
 
 def getResolution(mass):
 
@@ -74,29 +99,41 @@ def getResolution(mass):
 	result = {}
 
 	result["res"] = CBObject.sigma
-	result["mean"] = CBObject.mean
-	result["powerR"] = CBObject.PowerR
-	result["powerL"] = CBObject.PowerL
-	result["cutL"] = CBObject.CutL
-	result["cutR"] = CBObject.CutR
+	result["scale"] = CBObject.mean
+	result["nR"] = CBObject.PowerR
+	result["nL"] = CBObject.PowerL
+	result["alphaL"] = CBObject.CutL
+	result["alphaR"] = CBObject.CutR
 
 	return result
 
 
 
 def loadBackgroundShape(ws,useShapeUncert):
-
-	bkg_a = RooRealVar('bkg_a_dielectron_2017_EBEB','bkg_a_dielectron_2017_EBEB',3.21461e+00)
-	bkg_b = RooRealVar('bkg_b_dielectron_2017_EBEB','bkg_b_dielectron_2017_EBEB',-1.92330e-03)
+	# /afs/cern.ch/user/w/wenxing/public/ZprimeRun2/bkg_fit/bkg_fit_newFR.txt
+	bkg_a = RooRealVar('bkg_a_dielectron_2017_EBEB','bkg_a_dielectron_2017_EBEB',3.59973e+00)
+	bkg_b = RooRealVar('bkg_b_dielectron_2017_EBEB','bkg_b_dielectron_2017_EBEB',-1.45329e-03)
 	bkg_c = RooRealVar('bkg_c_dielectron_2017_EBEB','bkg_c_dielectron_2017_EBEB',0.)
-	bkg_d = RooRealVar('bkg_d_dielectron_2017_EBEB','bkg_d_dielectron_2017_EBEB',-2.19717e-11)
-	bkg_e = RooRealVar('bkg_e_dielectron_2017_EBEB','bkg_e_dielectron_2017_EBEB',-3.67903e+00)
+	bkg_d = RooRealVar('bkg_d_dielectron_2017_EBEB','bkg_d_dielectron_2017_EBEB',-1.20042e-11)
+	bkg_e = RooRealVar('bkg_e_dielectron_2017_EBEB','bkg_e_dielectron_2017_EBEB',-3.78621e+00)
 
-	bkg_a2 = RooRealVar('bkg_a2_dielectron_2017_EBEB','bkg_a2_dielectron_2017_EBEB',3.55590e+00)
-	bkg_b2 = RooRealVar('bkg_b2_dielectron_2017_EBEB','bkg_b2_dielectron_2017_EBEB',-1.01676e-03)
+	bkg_a2 = RooRealVar('bkg_a2_dielectron_2017_EBEB','bkg_a2_dielectron_2017_EBEB',2.80025e+00)
+	bkg_b2 = RooRealVar('bkg_b2_dielectron_2017_EBEB','bkg_b2_dielectron_2017_EBEB',-1.16097e-03)
 	bkg_c2 = RooRealVar('bkg_c2_dielectron_2017_EBEB','bkg_b2_dielectron_2017_EBEB',0)
-	bkg_d2 = RooRealVar('bkg_d2_dielectron_2017_EBEB','bkg_c2_dielectron_2017_EBEB',-9.70703e-12)
-	bkg_e2 = RooRealVar('bkg_e2_dielectron_2017_EBEB','bkg_d2_dielectron_2017_EBEB',-3.82450e+00)
+	bkg_d2 = RooRealVar('bkg_d2_dielectron_2017_EBEB','bkg_c2_dielectron_2017_EBEB',-6.05821e-12)
+	bkg_e2 = RooRealVar('bkg_e2_dielectron_2017_EBEB','bkg_d2_dielectron_2017_EBEB',-3.69666e+00)
+
+	# bkg_a = RooRealVar('bkg_a_dielectron_2017_EBEB','bkg_a_dielectron_2017_EBEB',3.59770e+00)
+	# bkg_b = RooRealVar('bkg_b_dielectron_2017_EBEB','bkg_b_dielectron_2017_EBEB',-1.43459e-03)
+	# bkg_c = RooRealVar('bkg_c_dielectron_2017_EBEB','bkg_c_dielectron_2017_EBEB',0.)
+	# bkg_d = RooRealVar('bkg_d_dielectron_2017_EBEB','bkg_d_dielectron_2017_EBEB',-1.21128e-11)
+	# bkg_e = RooRealVar('bkg_e_dielectron_2017_EBEB','bkg_e_dielectron_2017_EBEB',-3.79236e+00)
+
+	# bkg_a2 = RooRealVar('bkg_a2_dielectron_2017_EBEB','bkg_a2_dielectron_2017_EBEB',2.91343e+00)
+	# bkg_b2 = RooRealVar('bkg_b2_dielectron_2017_EBEB','bkg_b2_dielectron_2017_EBEB',-1.13568e-03)
+	# bkg_c2 = RooRealVar('bkg_c2_dielectron_2017_EBEB','bkg_b2_dielectron_2017_EBEB',0)
+	# bkg_d2 = RooRealVar('bkg_d2_dielectron_2017_EBEB','bkg_c2_dielectron_2017_EBEB',-6.81807e-12)
+	# bkg_e2 = RooRealVar('bkg_e2_dielectron_2017_EBEB','bkg_d2_dielectron_2017_EBEB',-3.72124e+00)
 	
 
 	bkg_a2.setConstant()
@@ -134,6 +171,7 @@ def loadBackgroundShape(ws,useShapeUncert):
 		bkgParamsUncert = provideUncertainties(1000)["bkgParams"]
 		for uncert in bkgParamsUncert:
 			addBkgUncertPrior(ws,uncert,"dielectron_2017_EBEB",bkgParamsUncert[uncert] )
+			#addBkgUncertPrior(ws,uncert,"dielectron_2017_EBEB",0.1 )
 		ws.factory("ZPrimeEleBkgPdf3::bkgpdf_dielectron_2017_EBEB(mass_dielectron_2017_EBEB, bkg_a_dielectron_2017_EBEB_forUse, bkg_b_dielectron_2017_EBEB_forUse, bkg_c_dielectron_2017_EBEB_forUse,bkg_d_dielectron_2017_EBEB_forUse,bkg_e_dielectron_2017_EBEB_forUse,bkg_a2_dielectron_2017_EBEB_forUse, bkg_b2_dielectron_2017_EBEB_forUse, bkg_c2_dielectron_2017_EBEB_forUse,bkg_d2_dielectron_2017_EBEB_forUse,bkg_e2_dielectron_2017_EBEB_forUse,bkg_syst_a_dielectron_2017_EBEB,bkg_syst_b_dielectron_2017_EBEB)")		
 		ws.factory("ZPrimeEleBkgPdf3::bkgpdf_fullRange(massFullRange, bkg_a_dielectron_2017_EBEB_forUse, bkg_b_dielectron_2017_EBEB_forUse, bkg_c_dielectron_2017_EBEB_forUse,bkg_d_dielectron_2017_EBEB_forUse,bkg_e_dielectron_2017_EBEB_forUse,bkg_a2_dielectron_2017_EBEB_forUse, bkg_b2_dielectron_2017_EBEB_forUse, bkg_c2_dielectron_2017_EBEB_forUse,bkg_d2_dielectron_2017_EBEB_forUse,bkg_e2_dielectron_2017_EBEB_forUse,bkg_syst_a_dielectron_2017_EBEB,bkg_syst_b_dielectron_2017_EBEB)")		
 	else:

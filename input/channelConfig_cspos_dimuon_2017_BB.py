@@ -116,10 +116,10 @@ def provideUncertaintiesCI(mass):
 
 	result = {}
 
-	result["trig"] = 1.003
+	result["trig"] = 1.0141
 	result["zPeak"] = 1.05
 	result["xSecOther"] = 1.07
-	result["jets"] = 1.5
+	result["jets"] = 2.0
 	result["lumi"] = 1.025
 	result["stats"] = 0.0 ##dummy values
 	result["massScale"] = 0.0 ##dummy values

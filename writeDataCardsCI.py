@@ -74,7 +74,7 @@ def getChannelBlock(backgrounds,yields,signalScale,chan):
 	for i in range(0,len(backgrounds)):
 		result+=" %d"%(i+1)
 	result +="\n"
-	result += "rate         %.2f "%yields[-1]
+	result += "rate         %.4f "%yields[-1]
 	#result += "rate         1 "
 	for i in range (0, len(backgrounds)):
 		result+= " %.2f"%yields[i]
@@ -257,7 +257,8 @@ def main():
 	parser.add_argument("-t", "--tag", dest = "tag", default="", help="tag")
 	parser.add_argument("-s", "--signif", action="store_true", default=False, help="write card for significances")
         parser.add_argument( "--workDir", dest = "workDir", default = "", help="tells batch jobs where to put the datacards. Not for human use!")
-				
+	parser.add_argument("--ADD", dest="ADD",default=False,action="store_true",help="write ADD cards")
+			
 	args = parser.parse_args()	
 	tag = args.tag
 	if not args.tag == "":
@@ -291,9 +292,11 @@ def main():
 		for interference in config.interferences:
 
 			name = "%s/%s_%d_%s" % (cardDir,args.chan, Lambda, interference)
-			if args.inject or "toy" in tag:	
+			if args.ADD:
+				yields = createHistogramsADD(Lambda,interference,name,args.chan,args.config)
+			elif args.inject or "toy" in tag:	# CI model
 				yields = createHistogramsCI(Lambda,interference, name,args.chan,args.config,dataFile=injectedFile)
-			else:	
+			else:	# CI model
 				yields = createHistogramsCI(Lambda,interference, name,args.chan,args.config)
 			
 			backgrounds = config.backgrounds

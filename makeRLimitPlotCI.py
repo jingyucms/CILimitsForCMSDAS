@@ -93,9 +93,9 @@ def getXSecs(name,kFac):
 	return Y
 
 
-lineColors = {"ConLL":ROOT.kRed,"ConLR":ROOT.kRed,"ConRR":ROOT.kRed,"DesLL":ROOT.kBlue,"DesLR":ROOT.kBlue,"DesRR":ROOT.kBlue}
-lineStyles = {"ConLL":1,"ConLR":2,"ConRR":4,"DesLL":1,"DesLR":2,"DesRR":4}
-labels = {"ConLL":"constructive left-left","ConLR":"constructive left-right","ConRR":"constructive right-right","DesLL":"destructive left-left","DesLR":"destructive left-right","DesRR":"destructive right-right"}
+lineColors = {"ConLL":ROOT.kRed,"ConLR":ROOT.kRed,"ConRL":ROOT.kRed,"ConRR":ROOT.kRed,"DesLL":ROOT.kBlue,"DesLR":ROOT.kBlue,"DesRL":ROOT.kBlue,"DesRR":ROOT.kBlue}
+lineStyles = {"ConLL":1,"ConLR":2,"ConRL":2,"ConRR":4,"DesLL":1,"DesLR":2,"DesRL":2,"DesRR":4}
+labels = {"ConLL":"constructive left-left","ConLR":"constructive left-right","ConRL":"constructive right-left","ConRR":"constructive right-right","DesLL":"destructive left-left","DesLR":"destructive left-right","DesRL":"destructive right-left","DesRR":"destructive right-right"}
 
 
 
@@ -414,7 +414,6 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
             		plLumi=TPaveLabel(.65,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"35.9 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
-
 	elif "2017" in output:
          	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"42.1 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
@@ -422,6 +421,14 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
             		plLumi=TPaveLabel(.65,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee) + 42.1 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+
+	elif "Run2" in output:
+         	if (chan=="mumu"): 
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"140 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+        	elif (chan=="elel"):
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"137 fb^{-1} (13 TeV, ee)","NBNDC")
+        	elif (chan=="elmu"):
+            		plLumi=TPaveLabel(.4,.905,.9,.99,"137 fb^{-1} (13 TeV, ee) + 140 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
 	else:
  	      	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
@@ -509,8 +516,8 @@ if __name__ == "__main__":
 	outputfile = "rLimitPlotCI_%s"%args.config
 	if not args.tag == "":
 		outputfile += "_"+args.tag        
-	obs = "cards/limitCard_%s_Obs"%args.config 
-	exp = "cards/limitCard_%s_Exp"%args.config 
+	obs = "cards/CI_limitCard_%s_Obs"%args.config 
+	exp = "cards/CI_limitCard_%s_Exp"%args.config 
 	if not args.tag == "":
 		obs += "_" + args.tag
 		exp += "_" + args.tag

@@ -105,11 +105,35 @@ def provideUncertainties(mass):
 
 	result = {}
 
-	result["sigEff"] = signalEffUncert(mass)
+	result["sigEff"] = [0.0]
+	result["reco"] = signalEffUncert(mass)
 	result["massScale"] = 0.01
 	result["bkgUncert"] = 1.4
 	result["res"] = 0.15
 	result["bkgParams"] = {"bkg_a":0.0008870490833826137,"bkg_b":0.0735080058224163,"bkg_c":0.020865265760197774,"bkg_d":0.13546622914957615,"bkg_e":0.0011148272017837235, "bkg_a2":0.0028587764436821044,"bkg_b2":0.008506113769271665,"bkg_c2":0.019418985270049097,"bkg_e2":0.0015616866215512754}
+	return result
+
+
+def provideCorrelations():
+	result = {}
+	''' Combine correlates uncertainties that have the same name. So wa hve to adjust the names to achieve what we want. 
+		1) put the full channel name. That will make it uncorrelated with all other channels
+		2) keep the channel name but remove the last bit: will correlate between the two subcategories within a year
+		3) Just keep the dimuon or dielectron name, so we correlate between the years
+		4) To correlate some specific combination of uncertainties, come up with a name and add it to all releavent channel configs
+	'''
+	#result['sigEff'] = 'dimuon' 
+	#result['massScale'] = 'dimuon' 
+	#result['bkgUncert'] = 'dimuon_Moriond2017_BB' 
+	#result['res'] = 'dimuon' 
+	#result['bkgParams'] = 'dimuon_Moriond2017_BB' 
+	result['sigEff'] = 'dimuon' 
+	result['massScale'] = 'dimuon_Moriond2017' 
+	result['bkgUncert'] = 'dimuon_Moriond2017_BB' 
+	result['res'] = 'dimuon_Moriond2017_BB' 
+	result['reco'] = 'dimuon_Moriond2017_BB' 
+	result['bkgParams'] = 'dimuon_Moriond2017_BB' 
+
 	return result
 
 def provideUncertaintiesCI(mass):
@@ -189,6 +213,7 @@ def loadBackgroundShape(ws,useShapeUncert=False):
 		bkgParamsUncert = provideUncertainties(1000)["bkgParams"]
 		for uncert in bkgParamsUncert:
 			addBkgUncertPrior(ws,uncert,"dimuon_Moriond2017_BB",bkgParamsUncert[uncert] )
+			#addBkgUncertPrior(ws,uncert,"dimuon_Moriond2017_BB",0.10)
 
 		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_Moriond2017_BB(mass_dimuon_Moriond2017_BB, bkg_a_dimuon_Moriond2017_BB_forUse, bkg_b_dimuon_Moriond2017_BB_forUse, bkg_c_dimuon_Moriond2017_BB_forUse,bkg_d_dimuon_Moriond2017_BB_forUse,bkg_e_dimuon_Moriond2017_BB_forUse,bkg_a2_dimuon_Moriond2017_BB_forUse, bkg_b2_dimuon_Moriond2017_BB_forUse, bkg_c2_dimuon_Moriond2017_BB_forUse,bkg_e2_dimuon_Moriond2017_BB_forUse,bkg_syst_a,bkg_syst_b)")		
 		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_Moriond2017_BB_forUse, bkg_b_dimuon_Moriond2017_BB_forUse, bkg_c_dimuon_Moriond2017_BB_forUse,bkg_d_dimuon_Moriond2017_BB_forUse,bkg_e_dimuon_Moriond2017_BB_forUse, bkg_a2_dimuon_Moriond2017_BB_forUse, bkg_b2_dimuon_Moriond2017_BB_forUse, bkg_c2_dimuon_Moriond2017_BB_forUse,bkg_e2_dimuon_Moriond2017_BB,bkg_syst_a,bkg_syst_b)")		

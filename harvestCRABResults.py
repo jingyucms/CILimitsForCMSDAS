@@ -7,6 +7,7 @@ import threading, Queue, time
 verbose = False
 users = {
 	"jan":["gsiftp://cms-gridftp.rcac.purdue.edu/store/user/jschulte/limits/"]
+#	"jan":["gsiftp://cms-gridftp.rcac.purdue.edu/store/user/jschulte/limits//DimuonRun2/firstTest/test/190618_030317"]
 	#"jan":["dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/jschulte/limits/"]
 
 }
@@ -158,6 +159,7 @@ def mergeExpected(configName,tag,config):
 			print "merging mass point %d GeV, %d/%d files present"%(mass,len(fileList),nJobs)	
 			command = ["hadd","-f","%s/higgsCombine%s.MarkovChainMC.mH%d.123456.root"%(path,configName+tag,mass)]
 			command += fileList
+			#print command
 			subprocess.call(command,stdout=open(os.devnull, 'wb'))
                         mass += massRange[0]
 
@@ -215,6 +217,7 @@ def main():
 
 	
 	path = users[args.user][0]+args.config+'/'+args.tag
+	#path = users[args.user][0]
 	print "Searching for limit results in %s"%path
 	
 	files =  getFileList(path,[])

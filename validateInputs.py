@@ -43,6 +43,8 @@ if __name__ == "__main__":
 			res = []
 			alphaL = []
 			alphaR = []
+			nL = []
+			nR = []
 			scale = []
 			masses = []
 			massRanges = config.masses
@@ -54,14 +56,12 @@ if __name__ == "__main__":
 					effSpin2.append(channelConfig.signalEff(mass,spin2=True))	
 					resStuff = channelConfig.getResolution(mass)
 					res.append(resStuff["res"])
-					if  "electron_2017" in channel:	
-						alphaL.append(resStuff["cutL"])
-						alphaR.append(resStuff["cutR"])
-						scale.append(resStuff["mean"])
-					elif not( "electron" in channel and mass > 2300):	
-						alphaL.append(resStuff["alphaL"])
-						alphaR.append(resStuff["alphaR"])
-						scale.append(resStuff["scale"])
+					alphaL.append(resStuff["alphaL"])
+					alphaR.append(resStuff["alphaR"])
+					if 'nR' in resStuff:
+						nL.append(resStuff["nL"])
+						nR.append(resStuff["nR"])
+					scale.append(resStuff["scale"])
                         		mass += massRange[0]
 
 
@@ -85,13 +85,17 @@ if __name__ == "__main__":
 			resGraph = ROOT.TGraph()
 			alphaLGraph = ROOT.TGraph()
 			alphaRGraph = ROOT.TGraph()
+			nLGraph = ROOT.TGraph()
+			nRGraph = ROOT.TGraph()
 			scaleGraph = ROOT.TGraph()
 			for i, mass in enumerate(masses):
 				resGraph.SetPoint(i,mass,res[i])
-				if not ("electron" in channel and mass > 2300):
-					alphaLGraph.SetPoint(i,mass,alphaL[i])
-					alphaRGraph.SetPoint(i,mass,alphaR[i])
-					scaleGraph.SetPoint(i,mass,scale[i])
+				if len(nL) > 0:
+					nLGraph.SetPoint(i,mass,nL[i])
+					nRGraph.SetPoint(i,mass,nR[i])
+				alphaLGraph.SetPoint(i,mass,alphaL[i])
+				alphaRGraph.SetPoint(i,mass,alphaR[i])
+				scaleGraph.SetPoint(i,mass,scale[i])
 		
 			maxVal = max(res)*1.5
 			minVal = 0
@@ -110,17 +114,32 @@ if __name__ == "__main__":
 			plotPad.DrawFrame(massRanges[0][1],minVal,massRanges[-1][2],maxVal,'%s ;m [GeV]; alphaR'%channel)
 			alphaRGraph.Draw('LPsame')
 			c.Print('validation/%s_alphaR.pdf'%channel)
+			if len(nL) > 0:
+				maxVal = max(nL)*1.5
+				minVal = 0
+				plotPad.DrawFrame(massRanges[0][1],minVal,massRanges[-1][2],maxVal,'%s ;m [GeV]; nL'%channel)
+				nLGraph.Draw('LPsame')
+				c.Print('validation/%s_nL.pdf'%channel)
+
+				maxVal = max(nR)*1.5
+				minVal = 0
+				plotPad.DrawFrame(massRanges[0][1],minVal,massRanges[-1][2],maxVal,'%s ;m [GeV]; nR'%channel)
+				nRGraph.Draw('LPsame')
+				c.Print('validation/%s_nR.pdf'%channel)
 
 			maxVal = max(scale)*1.5
-			minVal = 0
+			minVal = min(scale)*1.5
 			plotPad.DrawFrame(massRanges[0][1],minVal,massRanges[-1][2],maxVal,'%s ;m [GeV]; scale'%channel)
 			scaleGraph.Draw('LPsame')
 			c.Print('validation/%s_scale.pdf'%channel)
 			from tools import getMassRange
-			massLow, massHigh = getMassRange(5000,100,0.006+channelConfig.getResolution(5000)['res'],channelConfig.dataFile,150)	
+
+			mass = 4500
+
+			massLow, massHigh = getMassRange(mass,100,0.006+channelConfig.getResolution(mass)['res'],channelConfig.dataFile,150)	
 
 	
-			ws = createWS(5000,100,args.config,channel,0.1,False,dataFile="",CB=True,write=False,useShapeUncert=True)	
+			ws = createWS(mass,100,args.config,channel,0.1,False,dataFile="",CB=True,write=False,useShapeUncert=True)	
 			#massRanges[0][1] = 200
 			#massRanges[-1][2] = 400
 			frame = ws.var('mass_%s'%channel).frame(ROOT.RooFit.Title(''),ROOT.RooFit.Range(massLow,massHigh))

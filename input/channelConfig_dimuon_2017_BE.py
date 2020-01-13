@@ -4,8 +4,8 @@ ROOT.gErrorIgnoreLevel = 1
 from ROOT import *
 from numpy import exp
 nBkg = -1
-from muonResolution import getResolution as getRes
-dataFile = "input/dimuon_Mordion2017_BE.txt"
+from muonResolution2017 import getResolution as getRes
+dataFile = "input/event_list_2017_beee_clean_sort.txt"
 def addBkgUncertPrior(ws,label,channel,uncert):
 
         beta_bkg = RooRealVar('beta_%s_%s'%(label,channel),'beta_%s_%s'%(label,channel),0,-5,5)
@@ -19,8 +19,8 @@ def addBkgUncertPrior(ws,label,channel,uncert):
 
 
 def provideSignalScaling(mass,spin2=False):
-	nz   =  73255                      #From Alexander (80X prompt)
-	nsig_scale = 978.0579591836735       # prescale/eff_z (167.73694/0.1715) -->derives the lumi 
+	nz   =  23790                      #From Chris
+	nsig_scale = 3501.8726591760296       # prescale/eff_z (561/0.1602) -->derives the lumi 
 	eff = signalEff(mass,spin2)
 	result = (nsig_scale*nz*eff)
 
@@ -28,7 +28,6 @@ def provideSignalScaling(mass,spin2=False):
 
 
 def signalEff(mass,spin2=False):
-
 	if spin2:
 		eff_a = 0.211629
 		eff_b = 0.124469
@@ -41,97 +40,82 @@ def signalEff(mass,spin2=False):
 
 ##### default
 		if mass <= 450:
-			a =  13.56
-			b =  6.672
-			c = -4.879e+06
-			d = -7.233e+06
-			e = -826.
-			f = -1.567
+			a =  13.39
+			b =  6.696
+			c = -4.855e+06
+			d = -7.431e+06
+			e = -108.8
+			f = -1.138
 			return a - b * exp( -( (mass - c) / d) ) + e * mass**f
 		else:
-			eff_a     =  0.2529
-			eff_b     =  0.06511
-			eff_c     =  0.8755
-			eff_d     = -4601.
-			eff_e     =  1147.
+			eff_a     =  0.3148
+			eff_b     =  0.04447
+			eff_c     =  1.42
+			eff_d     = -5108.
+			eff_e     =  713.5
 			return	eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
 
-#### flat after 2 TeV
-#		if mass <= 450:
-#			a =  13.37
-#			b = 6.707
-#			c = -4.869e+06
-#			d = -7.405e+06
-#			e = -1476.
-#			f = -1.702
-#			return a - b * exp( -( (mass - c) / d) ) + e * mass**f
-#		else:
-#			eff_a     =  0.2174
-#			eff_b     =  0.08822
-#			eff_c     =  0.7599
-#			eff_d     = -4281.
-#			eff_e     =  1209.
-#			return	eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
-##### linear
-#		if mass <= 450:
-#			a =  13.38
-#			b = 6.707
-#			c = -4.869e+06
-#			d = -7.403e+06
-#			e = -1472.
-#			f = -1.701
-#			return a - b * exp( -( (mass - c) / d) ) + e * mass**f
-#		else:
-#			eff_a     =  0.1924
-#			eff_b     =  0.09908
-#			eff_c     =  0.6725
-#			eff_d     =  -4112.
-#			eff_e     =  1356.
-#			return	eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
 
 
-
-		
-
-def signalEffUncert(mass):
+def recoUncert(mass):
 	if mass <= 450:
-
-		a =  13.56
-		b =  6.672
-		c = -4.879e+06
-		d = -7.233e+06
-		e = -826.
-		f = -1.567
-
-		eff_default= a - b * exp( -( (mass - c) / d) ) + e * mass**f
+		a =  13.39
+		b =  6.696
+		c = -4.855e+06
+		d = -7.431e+06
+		e = -108.8
+		f = -1.138
+		eff_default = a - b * exp( -( (mass - c) / d) ) + e * mass**f
 	else:
-		eff_a     =  0.2529
-		eff_b     =  0.06511
-		eff_c     =  0.8755
-		eff_d     = -4601.
-		eff_e     =  1147.
-		eff_default =  eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
+		eff_a     =  0.3148
+		eff_b     =  0.04447
+		eff_c     =  1.42
+		eff_d     = -5108.
+		eff_e     =  713.5
+		eff_default = eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
+
 	if mass <= 450:
-		a =  13.38
-		b =  6.705
-		c = -4.865e+06
-		d = -7.413e+06
-		e = -995.2
-		f = -1.61
+		a =  1.33901e+01
+		b =  6.69687e+00
+		c = -4.85589e+06
+		d = -7.43036e+06
+		e = -1.14263e+02
+		f = -1.15028e+00
 		eff_syst= a - b * exp( -( (mass - c) / d) ) + e * mass**f
 	else:
-		eff_a     =  0.2265
-		eff_b     =  0.08241
-		eff_c     =  0.7638
-		eff_d     = -4358.
-		eff_e     =  1251.
+		eff_a     =  3.07958e-01
+		eff_b     =  4.63280e-02
+		eff_c     =  1.35632e+00
+		eff_d     = -5.00475e+03
+		eff_e     =  7.38088e+02
 		eff_syst =  eff_a + eff_b * mass**eff_c * exp(- ((mass - eff_d ) / eff_e) )
 
 
 
-	effDown = eff_default/eff_syst
+	uncertReco = 1. - eff_default/eff_syst
+
+
+	uncertUp = 0.
+	uncertDown = uncertReco
 	
-	return [1./effDown,1.0]
+	return [1.-uncertDown,1.+uncertUp]
+
+	
+
+def signalEffUncert(mass):
+	uncertHLT = 0.01
+	uncertID  = 0.01
+
+	uncertUp = (0.01**2 + 0.01**2)**0.5
+	uncertDown = (0.01**2 + 0.01**2)**0.5
+	
+	return [1.-uncertDown,1.+uncertUp]
+
+def massScaleUncert(mass):
+
+	scale = 1.00263 -1.04029e-05*mass + 8.9214e-09*mass**2 -3.4176e-12*mass**3 +  6.07934e-16*mass**4  -3.73738e-20*mass**5
+
+	return 1.-scale
 
 
 
@@ -139,11 +123,34 @@ def provideUncertainties(mass):
 
 	result = {}
 
+	result["reco"] = recoUncert(mass)
 	result["sigEff"] = signalEffUncert(mass)
-	result["massScale"] = 0.03
+	result["massScale"] = massScaleUncert(mass)
 	result ["bkgUncert"] = 1.4	
-	result ["res"] = 0.15
-	result["bkgParams"] = {"bkg_a":0.0009545020680878141,"bkg_b":0.02363157894736842,"bkg_c":0.03163023110555902,"bkg_d":0.03849293563579278,"bkg_e":0.0015616866215512754, "bkg_a2":0.002012072434607646,"bkg_b2":0.010820559062218215,"bkg_c2":0.031979147941758046,"bkg_e2":0.004791238877481177}
+	result ["res"] = 0.085
+	result["bkgParams"] = {"bkg_a":0.00149864671535,"bkg_b":0.00653883209809,"bkg_c":0.0463578422191,"bkg_d":0.045733835952,"bkg_e":0.00127869845332, "bkg_a2":0.00495212596353,"bkg_b2":0.0110368347341,"bkg_c2":0.0360014117393,"bkg_e2":0.00657290957759}
+	return result
+
+def provideCorrelations():
+	result = {}
+	''' Combine correlates uncertainties that have the same name. So wa hve to adjust the names to achieve what we want. 
+		1) put the full channel name. That will make it uncorrelated with all other channels
+		2) keep the channel name but remove the last bit: will correlate between the two subcategories within a year
+		3) Just keep the dimuon or dielectron name, so we correlate between the years
+		4) To correlate some specific combination of uncertainties, come up with a name and add it to all releavent channel configs
+	'''
+	#result['sigEff'] = 'dimuon' 
+	#result['massScale'] = 'dimuon' 
+	#result['bkgUncert'] = 'dimuon_2017_BE' 
+	#result['res'] = 'dimuon' 
+	#result['bkgParams'] = 'dimuon_2017_BE' 
+	result['sigEff'] = 'dimuon' 
+	result['massScale'] = 'dimuon' 
+	result['bkgUncert'] = 'dimuon_2017_BE' 
+	result['res'] = 'dimuon_2017_BE' 
+	result['reco'] = 'dimuon_BE' 
+	result['bkgParams'] = 'dimuon_2017_BE' 
+
 	return result
 
 def provideUncertaintiesCI(mass):
@@ -170,6 +177,8 @@ def getResolution(mass):
 	params = getRes(mass)
 	result['alphaL'] = params['alphaL']['BE']
 	result['alphaR'] = params['alphaR']['BE']
+	result['nL'] = params['nL']['BE']
+	result['nR'] = params['nR']['BE']
 	result['res'] = params['sigma']['BE']
 	result['scale'] = params['scale']['BE']
 	return result
@@ -178,15 +187,15 @@ def getResolution(mass):
 def loadBackgroundShape(ws,useShapeUncert=False):
 
 
-	bkg_a = RooRealVar('bkg_a_dimuon_Moriond2017_BE','bkg_a_dimuon_Moriond2017_BE', 31.43)
-	bkg_b = RooRealVar('bkg_b_dimuon_Moriond2017_BE','bkg_b_dimuon_Moriond2017_BE',-0.0019)
-	bkg_c = RooRealVar('bkg_c_dimuon_Moriond2017_BE','bkg_c_dimuon_Moriond2017_BE', 1.601e-07)
-	bkg_d = RooRealVar('bkg_d_dimuon_Moriond2017_BE','bkg_d_dimuon_Moriond2017_BE',-1.911E-11)
-	bkg_e = RooRealVar('bkg_e_dimuon_Moriond2017_BE','bkg_e_dimuon_Moriond2017_BE',-3.842)
-	bkg_a2 = RooRealVar('bkg_a2_dimuon_Moriond2017_BE','bkg_a2_dimuon_Moriond2017_BE', 19.88)
-	bkg_b2 = RooRealVar('bkg_b2_dimuon_Moriond2017_BE','bkg_b2_dimuon_Moriond2017_BE',-0.01109)
-	bkg_c2 = RooRealVar('bkg_c2_dimuon_Moriond2017_BE','bkg_c2_dimuon_Moriond2017_BE', 5.563e-06)
-	bkg_e2 = RooRealVar('bkg_e2_dimuon_Moriond2017_BE','bkg_e2_dimuon_Moriond2017_BE',-1.461)
+	bkg_a = RooRealVar('bkg_a_dimuon_2017_BE','bkg_a_dimuon_2017_BE', 20.2294579295)
+	bkg_b = RooRealVar('bkg_b_dimuon_2017_BE','bkg_b_dimuon_2017_BE',-0.00169012794522)
+	bkg_c = RooRealVar('bkg_c_dimuon_2017_BE','bkg_c_dimuon_2017_BE',8.06798491306e-08)
+	bkg_d = RooRealVar('bkg_d_dimuon_2017_BE','bkg_d_dimuon_2017_BE',-1.03307501705e-11)
+	bkg_e = RooRealVar('bkg_e_dimuon_2017_BE','bkg_e_dimuon_2017_BE',-3.85977306121)
+	bkg_a2 = RooRealVar('bkg_a2_dimuon_2017_BE','bkg_a2_dimuon_2017_BE', 7.45339497885)
+	bkg_b2 = RooRealVar('bkg_b2_dimuon_2017_BE','bkg_b2_dimuon_2017_BE',-0.0119993639555)
+	bkg_c2 = RooRealVar('bkg_c2_dimuon_2017_BE','bkg_c2_dimuon_2017_BE', 5.65225224556e-06)
+	bkg_e2 = RooRealVar('bkg_e2_dimuon_2017_BE','bkg_e2_dimuon_2017_BE',-1.18673996788)
 
 	bkg_a.setConstant()
 	bkg_b.setConstant()
@@ -219,13 +228,14 @@ def loadBackgroundShape(ws,useShapeUncert=False):
 	if useShapeUncert: 
 		bkgParamsUncert = provideUncertainties(1000)["bkgParams"]
 		for uncert in bkgParamsUncert:
-			addBkgUncertPrior(ws,uncert,"dimuon_Moriond2017_BE",bkgParamsUncert[uncert] )
+			addBkgUncertPrior(ws,uncert,"dimuon_2017_BE",bkgParamsUncert[uncert] )
+			#addBkgUncertPrior(ws,uncert,"dimuon_2017_BE",0.1 )
 
 	# background shape
-		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_Moriond2017_BE(mass_dimuon_Moriond2017_BE, bkg_a_dimuon_Moriond2017_BE_forUse, bkg_b_dimuon_Moriond2017_BE_forUse, bkg_c_dimuon_Moriond2017_BE_forUse,bkg_d_dimuon_Moriond2017_BE_forUse,bkg_e_dimuon_Moriond2017_BE_forUse, bkg_a2_dimuon_Moriond2017_BE_forUse, bkg_b2_dimuon_Moriond2017_BE_forUse, bkg_c2_dimuon_Moriond2017_BE_forUse,bkg_e2_dimuon_Moriond2017_BE_forUse,bkg_syst_a,bkg_syst_b)")		
-		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_Moriond2017_BE_forUse, bkg_b_dimuon_Moriond2017_BE_forUse, bkg_c_dimuon_Moriond2017_BE_forUse,bkg_d_dimuon_Moriond2017_BE_forUse,bkg_e_dimuon_Moriond2017_BE_forUse,bkg_a2_dimuon_Moriond2017_BE_forUse, bkg_b2_dimuon_Moriond2017_BE_forUse, bkg_c2_dimuon_Moriond2017_BE_forUse,bkg_e2_dimuon_Moriond2017_BE_forUse,bkg_syst_a,bkg_syst_b)")	
+		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_2017_BE(mass_dimuon_2017_BE, bkg_a_dimuon_2017_BE_forUse, bkg_b_dimuon_2017_BE_forUse, bkg_c_dimuon_2017_BE_forUse,bkg_d_dimuon_2017_BE_forUse,bkg_e_dimuon_2017_BE_forUse, bkg_a2_dimuon_2017_BE_forUse, bkg_b2_dimuon_2017_BE_forUse, bkg_c2_dimuon_2017_BE_forUse,bkg_e2_dimuon_2017_BE_forUse,bkg_syst_a,bkg_syst_b)")		
+		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_2017_BE_forUse, bkg_b_dimuon_2017_BE_forUse, bkg_c_dimuon_2017_BE_forUse,bkg_d_dimuon_2017_BE_forUse,bkg_e_dimuon_2017_BE_forUse,bkg_a2_dimuon_2017_BE_forUse, bkg_b2_dimuon_2017_BE_forUse, bkg_c2_dimuon_2017_BE_forUse,bkg_e2_dimuon_2017_BE_forUse,bkg_syst_a,bkg_syst_b)")	
 	else:
-		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_Moriond2017_BE(mass_dimuon_Moriond2017_BE, bkg_a_dimuon_Moriond2017_BE, bkg_b_dimuon_Moriond2017_BE, bkg_c_dimuon_Moriond2017_BE,bkg_d_dimuon_Moriond2017_BE,bkg_e_dimuon_Moriond2017_BE, bkg_a2_dimuon_Moriond2017_BE, bkg_b2_dimuon_Moriond2017_BE, bkg_c2_dimuon_Moriond2017_BE,bkg_e2_dimuon_Moriond2017_BE,bkg_syst_a,bkg_syst_b)")		
-		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_Moriond2017_BE, bkg_b_dimuon_Moriond2017_BE, bkg_c_dimuon_Moriond2017_BE,bkg_d_dimuon_Moriond2017_BE,bkg_e_dimuon_Moriond2017_BE,bkg_a2_dimuon_Moriond2017_BE, bkg_b2_dimuon_Moriond2017_BE, bkg_c2_dimuon_Moriond2017_BE,bkg_e2_dimuon_Moriond2017_BE,bkg_syst_a,bkg_syst_b)")	
+		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_dimuon_2017_BE(mass_dimuon_2017_BE, bkg_a_dimuon_2017_BE, bkg_b_dimuon_2017_BE, bkg_c_dimuon_2017_BE,bkg_d_dimuon_2017_BE,bkg_e_dimuon_2017_BE, bkg_a2_dimuon_2017_BE, bkg_b2_dimuon_2017_BE, bkg_c2_dimuon_2017_BE,bkg_e2_dimuon_2017_BE,bkg_syst_a,bkg_syst_b)")		
+		ws.factory("ZPrimeMuonBkgPdf2::bkgpdf_fullRange(massFullRange, bkg_a_dimuon_2017_BE, bkg_b_dimuon_2017_BE, bkg_c_dimuon_2017_BE,bkg_d_dimuon_2017_BE,bkg_e_dimuon_2017_BE,bkg_a2_dimuon_2017_BE, bkg_b2_dimuon_2017_BE, bkg_c2_dimuon_2017_BE,bkg_e2_dimuon_2017_BE,bkg_syst_a,bkg_syst_b)")	
 
 	return ws

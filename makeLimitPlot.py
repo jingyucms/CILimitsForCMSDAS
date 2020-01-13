@@ -73,7 +73,7 @@ def getXSecCurve(name,kFac,massDependent=False):
 
 
 def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
-	fileForHEPData = TFile("plots/"+output+"_forHEPData.root","RECREATE")
+	#fileForHEPData = TFile("plots/"+output+"_forHEPData.root","RECREATE")
     	fileObs=open(obs,'r')
    	fileExp=open(exp,'r')
 
@@ -308,7 +308,7 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	gStyle.SetOptStat(0)
 	DummyGraph.GetXaxis().SetRangeUser(200,5500)
 
-    	DummyGraph.SetMinimum(1e-8)
+    	DummyGraph.SetMinimum(5e-9)
     	DummyGraph.SetMaximum(1e-4)
     	DummyGraph.GetXaxis().SetLabelSize(0.055)
     	DummyGraph.GetXaxis().SetTitleSize(0.055)
@@ -351,7 +351,7 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     	plPrelim.SetFillColor(0)
     	plPrelim.SetFillStyle(0)
     	plPrelim.SetBorderSize(0)
-	if "2017" in output or "Combination" in output:
+	if "2017" in output or "Combination" in output or 'Run2' in output:
 	    	plPrelim.Draw()
 
 
@@ -418,18 +418,18 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
 
 	elif "2017" in output or "Combination" in output:
          	if (chan=="mumu"): 
-            		plLumi=TPaveLabel(.65,.885,.9,.99,"36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+            		plLumi=TPaveLabel(.65,.885,.9,.99,"42.4 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
         	elif (chan=="elel"):
             		plLumi=TPaveLabel(.65,.885,.9,.99,"41.4 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
-            		plLumi=TPaveLabel(.27,.885,.9,.99,"77.3 fb^{-1} (13 TeV, ee) + 36.3 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
+            		plLumi=TPaveLabel(.27,.885,.9,.99,"77.3 fb^{-1} (13 TeV, ee) + 78.7 fb^{-1} (13 TeV, #mu^{+}#mu^{-})","NBNDC")
 	else:
  	      	if (chan=="mumu"): 
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.65,.905,.9,.99," 139.7 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
         	elif (chan=="elel"):
-            		plLumi=TPaveLabel(.65,.905,.9,.99,"2.7 fb^{-1} (13 TeV, ee)","NBNDC")
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"136.8 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
-            		plLumi=TPaveLabel(.4,.905,.9,.99,"12.4 fb^{-1} (13 TeV, ee) + 13.0 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+            		plLumi=TPaveLabel(.4,.905,.9,.99,"136.8 fb^{-1} (13 TeV, ee) + 139.7 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
 
     	
 	plLumi.SetTextSize(0.5)
@@ -459,20 +459,20 @@ def makeLimitPlot(output,obs,exp,chan,printStats=False,obs2="",ratioLabel=""):
     		ratioGraph.Draw("sameP")
 
 
-	GraphErr2SigForHEPData.SetName("graph2Sig")
-	GraphErr2SigForHEPData.Write("graph2Sig")
+	#GraphErr2SigForHEPData.SetName("graph2Sig")
+	#GraphErr2SigForHEPData.Write("graph2Sig")
 
-	GraphErr1SigForHEPData.SetName("graph1Sig")
-	GraphErr1SigForHEPData.Write("graph1Sig")
+	#GraphErr1SigForHEPData.SetName("graph1Sig")
+	#GraphErr1SigForHEPData.Write("graph1Sig")
 
-	GraphExp.SetName("graphExp")
-	GraphExp.Write("graphExp")
+	#GraphExp.SetName("graphExp")
+	#GraphExp.Write("graphExp")
 
-	GraphObs.SetName("graphObs")
-	GraphObs.Write("graphObs")
+	#GraphObs.SetName("graphObs")
+	#GraphObs.Write("graphObs")
 
-   	fileForHEPData.Write()
-	fileForHEPData.Close() 
+   	#fileForHEPData.Write()
+	#fileForHEPData.Close() 
     	cCL.Update()
     	printPlots(cCL,output)
     
@@ -532,8 +532,8 @@ if __name__ == "__main__":
 		outputfile += "_RS"
 	if KFAC:
 		outputfile += "_KFAC"
-	obs = "cards/limitCard_%s_Obs"%args.config 
-	exp = "cards/limitCard_%s_Exp"%args.config 
+	obs = "cards/ZPrime_limitCard_%s_Obs"%args.config 
+	exp = "cards/ZPrime_limitCard_%s_Exp"%args.config 
 	if not args.tag == "":
 		obs += "_" + args.tag
 		exp += "_" + args.tag

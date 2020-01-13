@@ -3,6 +3,7 @@ import os
 sys.path.append('cfgs/')
 import ROOT
 import subprocess
+
 if __name__ == "__main__":
         import argparse
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -18,6 +19,7 @@ if __name__ == "__main__":
     	parser.add_argument("--hybrid",dest="hybrid", action="store_true", default=False, help='use results from hybrid significance calculations')
     	parser.add_argument("--merge",dest="merge", action="store_true", default=False, help='merge expected limits first')
     	parser.add_argument("--CI",dest="CI", action="store_true", default=False, help='is CI')
+	parser.add_argument("--ADD",dest="ADD",action="store_true",default=False, help="is ADD")
      	parser.add_argument("--bias",dest="bias", action="store_true", default=False, help='is for bias study')
      	parser.add_argument("--mu1",dest="mu1", action="store_true", default=False, help='bias study for mu = 1')
 
@@ -47,7 +49,7 @@ if __name__ == "__main__":
 
 	algo = "MarkovChainMC"
 	if args.signif:
-		algo = "ProfileLikelihood"
+		algo = "Significance"
 		if args.hybrid:
 			algo = "HybridNew"
 	if args.frequentist:
@@ -71,13 +73,19 @@ if __name__ == "__main__":
 	
 	if args.binned:
 		outFileName += "_binned"
+	
+	# add model indentifier
+	modelID = "ZPrime_"
+	if args.ADD: modelID = "ADD_"
+	if args.CI: modelID = "CI_"
+	outFileName = modelID + outFileName
 
 	if not os.path.exists("cards"):
 		os.mkdir("cards")	
 
 
    	if args.merge:
-		if args.CI:	
+		if args.CI or args.ADD:	
         		for Lambda in config.lambdas:
 				for interference in config.interferences:
 					nJobs = int(config.exptToys/10)
@@ -95,34 +103,15 @@ if __name__ == "__main__":
 			print "not implemented yet"
 
 	else: 
-		if args.CI:
-			if args.exp:
-				outFileName = "limitCard_%s_Exp"%(args.config)
-			elif args.signif:
-				outFileName = "limitCard_%s_Signif"%(args.config)
-		 	elif args.bias:
- 				outFileName = "limitCard_%s_Bias"%(args.config)
- 				if args.mu1:
- 					outFileName = "limitCard_%s_Bias_mu1"%(args.config)
-			else:
-				outFileName = "limitCard_%s_Obs"%(args.config)
-			if args.hybrid:
-				outFileName += "_hybrid"
-			if args.frequentist:
-				outFileName += "_frequentist"
-			if not args.tag =='':
-				outFileName = outFileName + "_" + args.tag	
-
-
-		#	if args.signif: 
-		#		tag = ""	
+		if args.CI or args.ADD:
+			#	if args.signif: 
+			#		tag = ""	
 			if args.injected:
 				name = "%s_%d_%.4f_%d"%(args.config,config.signalInjection["mass"],config.signalInjection["width"],config.signalInjection["nEvents"]) + tag
 			else:
 				name=args.config + "_" + args.tag
-		#name=args.config
+			#name=args.config
 
-	
 			Lambdas = config.lambdas
 			missingFiles = []
 			outName = outFileName
@@ -185,7 +174,8 @@ if __name__ == "__main__":
                                 		for entry in limitTree:
 							if args.signif:
                                 				outFile.write("%d %.15f\n"%(mass,entry.limit))        
-                                			else:	
+                                			else:
+								print entry.limit	
 								outFile.write("%d %.15f\n"%(mass,entry.limit*1e-7))        
 	                		else:
 						missingFiles.append(fileName)	

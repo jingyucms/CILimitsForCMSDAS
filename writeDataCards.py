@@ -86,6 +86,19 @@ def getChannelBlock(nBkgs,bkgYields,signalScale,chan):
 
 
 def getUncert(uncert, value, nBkgs, mass,channel,correlate,binned,bkgYields,signif):
+	if uncert == "reco":
+		if correlate:
+			name = "reco_unc"
+		else:
+			name = "reco_unc_%s"%channel
+		
+	        if len(value) == 1:
+	                result = "%s  lnN  %.4f"%(name,value[0])
+	        else:
+	                result = "%s  lnN  %.5f/%.4f"%(name, value[0], value[1] )
+
+		for i in range(0,nBkgs):
+	                result += "  -  "
 
 	if uncert == "sigEff":
 		if correlate:
@@ -93,9 +106,9 @@ def getUncert(uncert, value, nBkgs, mass,channel,correlate,binned,bkgYields,sign
 		else:
 			name = "sig_effUnc_%s"%channel
 	        if len(value) == 1:
-	                result = "%s  lnN  %.2f"%(name,value[0])
+	                result = "%s  lnN  %.4f"%(name,value[0])
 	        else:
-	                result = "%s  lnN  %.5f/%.2f"%(name, value[0], value[1] )
+	                result = "%s  lnN  %.5f/%.4f"%(name, value[0], value[1] )
 
 		for i in range(0,nBkgs):
 	                result += "  -  "
@@ -103,7 +116,6 @@ def getUncert(uncert, value, nBkgs, mass,channel,correlate,binned,bkgYields,sign
 	if uncert == "bkgUncert":
 		#if value != 0:
 		#	print "non-standard background uncertainties not supported yet"
-		#	sys.exit()
 		if correlate:
 			name = "bkg_unc"
 		else:
@@ -113,12 +125,12 @@ def getUncert(uncert, value, nBkgs, mass,channel,correlate,binned,bkgYields,sign
 			#value = 0.8
 			if not signif:
 
-#				result += " %.2f"%(1.+bkgYields[i]**0.5/bkgYields[i])
-				result += "  %.2f  "%(value)
+				result += " %.4f"%(1.+3*bkgYields[i]**0.5/bkgYields[i])
+				#result += "  %.2f  "%(value)
 			#result += "  %.2f  "%(1.4)
 			else:
-				#result += " %.4f"%(1.+bkgYields[i]**0.5/bkgYields[i])
-				result += "  %.2f  "%(value)
+				result += " %.4f"%(1.+3*bkgYields[i]**0.5/bkgYields[i])
+				#result += "  %.2f  "%(value)
 	if uncert == "massScale":
 		if binned:
 			if correlate:
@@ -135,7 +147,10 @@ def getUncert(uncert, value, nBkgs, mass,channel,correlate,binned,bkgYields,sign
 				name = "beta_peak"
 			else:
 				name = "beta_peak_%s"%channel
-			result = "%s param 0 1" %name
+			if 'dimuon_2017' in channel or 'dimuon_2018' in channel:	
+				result = "%s param 0 -0.01/+1" %name
+			else:
+				result = "%s param 0 1" %name
 	if uncert == "res":
 		if binned:
 			print 'you were to lazy to implment this uncertainty for binned yet. Do that and come back'
@@ -327,8 +342,9 @@ def main():
 
 			uncertBlock = ""
 			uncerts = module.provideUncertainties(mass)
+			correlations = module.provideCorrelations()
 			for uncert in config.systematics:
-				uncertBlock += getUncert(uncert,uncerts[uncert],nBkg,mass,args.chan,config.correlate,args.binned,bkgYields,args.signif)
+				uncertBlock += getUncert(uncert,uncerts[uncert],nBkg,mass,correlations[uncert],config.correlate,args.binned,bkgYields,args.signif)
 			
 			channelDict["systs"] = uncertBlock
 
