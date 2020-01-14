@@ -75,9 +75,9 @@ if __name__ == "__main__":
 		outFileName += "_binned"
 	
 	# add model indentifier
-	modelID = "ZPrime_"
-	if args.ADD: modelID = "ADD_"
-	if args.CI: modelID = "CI_"
+	modelID = ""
+	#if args.ADD: modelID = "ADD_"
+	#if args.CI: modelID = "CI_"
 	outFileName = modelID + outFileName
 
 	if not os.path.exists("cards"):

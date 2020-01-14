@@ -100,6 +100,8 @@ labels = {"ConLL":"constructive left-left","ConLR":"constructive left-right","Co
 
 
 def printPlots(canvas,name):
+	if not os.path.exists('plots'):
+    		os.makedirs('plots')	
     	canvas.Print('plots/'+name+".png","png")
     	canvas.Print('plots/'+name+".pdf","pdf")
     	canvas.SaveSource('plots/'+name+".C","cxx")
