@@ -56,6 +56,8 @@ rm -rf CMSSW_10_2_13
 		command += " --spin2"
 	if args.int:
 		command += " --int"
+	if args.combineSigDY:
+		command += " --combineSignalDY"
 
 	command = command%(args.config,args.tag.split("_")[-1])
 	userName = config.LPCUsername
@@ -94,11 +96,11 @@ x509userproxy = $ENV(X509_USER_PROXY)
 		if args.expected:
 			for L in config.lambdas:
 				if L == expMass:
-					queueBlock += "Arguments = %d %d %d $(Process)\n"%(args.mass,L,10)
-					queueBlock += "Queue %d\n"%(int(config.exptToys/10))		
+					queueBlock += "Arguments = %d %d %d $(Process)\n"%(args.mass,L,20)
+					queueBlock += "Queue %d\n"%(int(config.exptToys/20))		
 		else:
 			for L in config.lambdas:
-				queueBlock += "Arguments = -1 %d %d\n"%(L,config.numToys)
+				queueBlock += "Arguments = %d %d %d\n"%(args.mass,L,config.numToys)
 				queueBlock += "Queue 1\n"	
 
 	else:

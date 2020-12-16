@@ -454,6 +454,10 @@ def createHistograms(massVal,minNrEv,name,channel,width,correlateMass,binWidth,d
 
 
 def getRebinnedHistogram(hist,binning,name):
+	#if "Jets" in name and "dielectron" in name:
+	#	for i in range(0,hist.GetNbinsX()):
+	#		hist.SetBinContent(i,hist.GetBinContent(i)*hist.GetBinWidth(i))
+	#		hist.SetBinError(i,hist.GetBinError(i)*hist.GetBinWidth(i))		
 	return hist.Rebin(len(binning) - 1, name, array('d', binning))
 
 def getStatUncertHistogram(hist,name,up=False):
@@ -467,15 +471,15 @@ def getStatUncertHistogram(hist,name,up=False):
 
 def getPDFUncertHistogram(hist,name,pdf,up=False):
 	uncertHist = hist.Clone(name)
-	for i in range(1,hist.GetNbinsX()):
+	for i in range(1,hist.GetNbinsX()+1):
 		if up:
 			uncertHist.SetBinContent(i,hist.GetBinContent(i)+hist.GetBinContent(i)*pdf[i-1])	
 		else:
-			uncertHist.SetBinContent(i,hist.GetBinContent(i)-hist.GetBinContent(i)*pdf[i-1])	
+			uncertHist.SetBinContent(i,max(0,hist.GetBinContent(i)-hist.GetBinContent(i)*pdf[i-1]))	
 	return uncertHist
 
 
-def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
+def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile="",truncation=False):
 	ROOT.RooMsgService.instance().setGlobalKillBelow(RooFit.FATAL)
 
 
@@ -486,6 +490,13 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         scanConfig =  __import__(scanConfigName)
 	
         binning = scanConfig.binning
+	if "2016" in channel and "ADD" in scanConfigName:
+	#if "ADD" in scanConfigName:
+		binning = scanConfig.binning2016
+	if dataFile == "":
+		dataFile = config.dataFile
+	with open(dataFile) as f:
+    		events = f.readlines()
 
 	if 'electron' in channel:
 		lowestMass = 400
@@ -494,44 +505,60 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
         from array import array
  
 
+	
+	
 
 	if 'ADD' in scanConfigName:
 		model = 'ADD'
+		lowestMass = 1800
+		if "2016" in channel:
+			lowestMass = 1900
 	else: 
 		model = 'CI'
 
 	inputFileName = "input/inputsCI/inputsCI_%s.root"%(channel)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
+	truncationName=""
+	if truncation:
+		truncationName = "Truncation"
 	import pickle 
 	if "muon" in channel:
-		pkl = open("input/inputsCI/%ssignalYields_default.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYields%s_default.pkl"%(model,truncationName), "r")
 		signalYields_default = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/%ssignalYields_scaleDown.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYields%s_scaleDown.pkl"%(model,truncationName), "r")
 		signalYields_scaleDown = pickle.load(pkl)
 
-#		pkl = open("input/inputsCI/signalYields_piledown.pkl", "r")
-#		signalYields_piledown = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYields%s_pdfWeightsUp.pkl"%(model,truncationName), "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
 
-#		pkl = open("input/inputsCI/signalYields_pileup.pkl", "r")
-#		signalYields_pileup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYields%s_pdfWeightsDown.pkl"%(model,truncationName), "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/%ssignalYields_resolution.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYields%s_resolution.pkl"%(model,truncationName), "r")
 		signalYields_resolution = pickle.load(pkl)
 
-		pkl = open("input/inputsCI/%ssignalYields_ID.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYields%s_ID.pkl"%(model,truncationName), "r")
 		signalYields_ID = pickle.load(pkl)
 	elif "electron" in channel:
-		pkl = open("input/inputsCI/%ssignalYieldsEle_default.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_default.pkl"%(model,truncationName), "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleUp.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_scaleUp.pkl"%(model,truncationName), "r")
 		signalYields_scaleUp = pickle.load(pkl)
-		pkl = open("input/inputsCI/%ssignalYieldsEle_scaleDown.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_scaleDown.pkl"%(model,truncationName), "r")
 		signalYields_scaleDown = pickle.load(pkl)
-		pkl = open("input/inputsCI/%ssignalYieldsEle_piledown.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_piledown.pkl"%(model,truncationName), "r")
 		signalYields_piledown = pickle.load(pkl)
-		pkl = open("input/inputsCI/%ssignalYieldsEle_pileup.pkl"%model, "r")
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_pileup.pkl"%(model,truncationName), "r")
 		signalYields_pileup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_pdfWeightsUp.pkl"%(model,truncationName), "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_pdfWeightsDown.pkl"%(model,truncationName), "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_prefireup.pkl"%(model,truncationName), "r")
+		signalYields_prefireUp = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle%s_prefiredown.pkl"%(model,truncationName), "r")
+		signalYields_prefireDown = pickle.load(pkl)
 
 	histFile = ROOT.TFile("%s.root"%name, "RECREATE")	
 	bkgHistDYTemp = inputFile.Get("bkgHistDY_%s"%channel)
@@ -543,6 +570,8 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 		bkgHistDYScaleUpTemp = inputFile.Get("bkgHistDYScaleUp_%s"%channel)
 		bkgHistDYPUDownTemp = inputFile.Get("bkgHistDYPUDown_%s"%channel)
 		bkgHistDYPUUpTemp = inputFile.Get("bkgHistDYPUUp_%s"%channel)
+		bkgHistDYPrefireDownTemp = inputFile.Get("bkgHistDYPrefireDown_%s"%channel)
+		bkgHistDYPrefireUpTemp = inputFile.Get("bkgHistDYPrefireUp_%s"%channel)
 
 	bkgHistOtherTemp = inputFile.Get("bkgHistOther_%s"%channel)
 	bkgHistOtherScaleDownTemp = inputFile.Get("bkgHistOtherScaleDown_%s"%channel)
@@ -553,11 +582,24 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 		bkgHistOtherPUDownTemp = inputFile.Get("bkgHistOtherPUDown_%s"%channel)
 		bkgHistOtherPUUpTemp = inputFile.Get("bkgHistOtherPUUp_%s"%channel)
 		bkgHistOtherScaleUpTemp = inputFile.Get("bkgHistOtherScaleUp_%s"%channel)
+		bkgHistOtherPrefireDownTemp = inputFile.Get("bkgHistOtherPrefireDown_%s"%channel)
+		bkgHistOtherPrefireUpTemp = inputFile.Get("bkgHistOtherPrefireUp_%s"%channel)
 
 	bkgHistJetsTemp = inputFile.Get("bkgHistJets_%s"%channel)
-	pdfUncert = [0.01,0.0125,0.02,0.035,0.065,0.10]
-	pdfUncertDY = [0.0133126577202494, 0.0147788328624159, 0.01842209757115, 0.0243644300786998, 0.039572839847093, 0.1144248733154136]
-	pdfUncertOther = [0.0358232181870253, 0.088892531404347, 0.1254268509362337, 0.1736824180528946, 0.2024257617076786, 0.3369525304968204]
+	if "ADD" in scanConfigName:
+		#if "2016" in channel:
+			pdfUncert = [0.09650476077712875,0.11631416752423052,0.13116564710563733,0.14414683366902137,0.17666058539426496]	
+			#pdfUncert = [0.001,0.001,0.001,0.001,0.001]	
+			pdfUncertDY = [0.0335288129164533, 0.0429886021839947, 0.047645134519074, 0.069030181137942, 0.119036982092236]
+			pdfUncertOther = [0.1655371996916466, 0.269902491201715, 0.2699234253751208, 0.2984407542188063, 0.3777961331626525]
+		#else:
+		#	pdfUncert = [0.029927732054534695,0.048888012380709035,0.08857090934916816,0.13602871909306424,0.17965523337854952]
+		#	pdfUncertDY = [0.0138720301283295, 0.0190751831181522, 0.0305396967143887, 0.0516138991171715, 0.1230468160731701]
+		#	pdfUncertOther = [0.0535456461585195, 0.1291420983058327, 0.1997479183784237, 0.283750816771433, 0.3565547632540647]
+	else:
+		pdfUncert = [0.029808675319316736,0.032492944178882606,0.046693632068081733,0.06985339137281024,0.11520346316811705,0.17965523337854952]
+		pdfUncertDY = [0.0133126577202494, 0.0147788328624159, 0.01842209757115, 0.0243644300786998, 0.039572839847093, 0.1144248733154136]
+		pdfUncertOther = [0.0358232181870253, 0.088892531404347, 0.1254268509362337, 0.1736824180528946, 0.2024257617076786, 0.3369525304968204]
 	dataHistTemp = inputFile.Get("dataHist_%s"%channel)
 	dataIntegral = dataHistTemp.Integral(dataHistTemp.FindBin(lowestMass),dataHistTemp.GetNbinsX())
 
@@ -567,6 +609,9 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	pdfName = "pdf"
 	IDName = "ID"
 	PUName = "PU"
+	prefireName = "prefire"
+	weightName = "PdfWeights"
+
 
 	bkgHistDY = getRebinnedHistogram(bkgHistDYTemp,binning,"bkgHistDY_%s"%channel)
 
@@ -584,6 +629,8 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
  	        bkgHistDYPUDown = getRebinnedHistogram(bkgHistDYPUDownTemp, binning, "bkgHistDY_%sDown"%(PUName))
         	bkgHistDYPUUp = getRebinnedHistogram(bkgHistDYPUUpTemp, binning, "bkgHistDY_%sUp"%(PUName))
        		bkgHistDYScaleUp = getRebinnedHistogram(bkgHistDYScaleUpTemp,binning,"bkgHistDY_%s_%sUp"%(scaleName,channel))
+ 	        bkgHistDYPrefireDown = getRebinnedHistogram(bkgHistDYPrefireDownTemp, binning, "bkgHistDY_%sDown"%(prefireName))
+        	bkgHistDYPrefireUp = getRebinnedHistogram(bkgHistDYPrefireUpTemp, binning, "bkgHistDY_%sUp"%(prefireName))
 
         bkgHistDYPDFDown = getPDFUncertHistogram(bkgHistDY,"bkgHistDY_%sDown"%(pdfName), pdfUncertDY)
         bkgHistDYPDFUp =   getPDFUncertHistogram(bkgHistDY,"bkgHistDY_%sUp"%(pdfName),   pdfUncertDY,True)
@@ -603,16 +650,21 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	else:
  	        bkgHistOtherPUDown = getRebinnedHistogram(bkgHistOtherPUDownTemp, binning, "bkgHistOther_%sDown"%(PUName))
         	bkgHistOtherPUUp = getRebinnedHistogram(bkgHistOtherPUUpTemp, binning, "bkgHistOther_%sUp"%(PUName))
+  	        bkgHistOtherPrefireDown = getRebinnedHistogram(bkgHistOtherPrefireDownTemp, binning, "bkgHistOther_%sDown"%(prefireName))
+        	bkgHistOtherPrefireUp = getRebinnedHistogram(bkgHistOtherPrefireUpTemp, binning, "bkgHistOther_%sUp"%(prefireName))
        		bkgHistOtherScaleUp = getRebinnedHistogram(bkgHistOtherScaleUpTemp,binning,"bkgHistOther_%s_%sUp"%(scaleName,channel))
         bkgHistOtherPDFDown = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sDown"%(pdfName), pdfUncertOther)
         bkgHistOtherPDFUp = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sUp"%(pdfName), pdfUncertOther,True)
 
 	
-	bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
+        bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
+        #bkgHistJets = bkgHistJetsTemp
 
         sigHist = ROOT.TH1F("sigHist_%s"%channel,"sigHist_%s"%channel,len(binning)-1,array('f',binning))
         sigHistStatUp = ROOT.TH1F("sigHist_%s_%sUp"%(statName,channel),"sigHistStat_%s_%sUp"%(channel,statName),len(binning)-1,array('f',binning))
         sigHistStatDown = ROOT.TH1F("sigHist_%s_%sDown"%(statName,channel),"sigHistStat_%s_%sDown"%(channel,statName),len(binning)-1,array('f',binning))
+        sigHistPdfWeightsUp = ROOT.TH1F("sigHist_%sUp"%(weightName),"sigHist_%sUp"%(weightName),len(binning)-1,array('f',binning))
+        sigHistPdfWeightsDown = ROOT.TH1F("sigHist_%sDown"%(weightName),"sigHist_%sDown"%(weightName),len(binning)-1,array('f',binning))
         sigHistScaleDown = ROOT.TH1F("sigHist_%s_%sDown"%(scaleName,channel),"sigHistScaleDown_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
         sigHistPDFDown = ROOT.TH1F("sigHist_%sDown"%(pdfName),"sigHistPDFDown_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
         sigHistPDFUp = ROOT.TH1F("sigHist_%sUp"%(pdfName),"sigHistPDFUp_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
@@ -622,79 +674,66 @@ def createHistogramsCI(L,interference,name,channel,scanConfigName,dataFile=""):
 	        sigHistSmearUp = ROOT.TH1F("sigHist_%s_%sUp"%(smearName,channel),"sigHistSmear_%s_%sUp"%(channel,smearName),len(binning)-1,array('f',binning))
         	sigHistSmearDown = ROOT.TH1F("sigHist_%s_%sDown"%(smearName,channel),"sigHistSmear_%s_%sDown"%(channel,smearName),len(binning)-1,array('f',binning))
 	else:
-	        sigHistPUDown = ROOT.TH1F("sigHist_%sDown"%(PUName),"sigHistPUDown_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
-        	sigHistPUUp = ROOT.TH1F("sigHist_%sUp"%(PUName),"sigHistPUUp_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
+	        sigHistPUDown = ROOT.TH1F("sigHist_%sDown"%(PUName),"sigHistPUDown_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
+        	sigHistPUUp = ROOT.TH1F("sigHist_%sUp"%(PUName),"sigHistPUUp_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
+	        sigHistPrefireDown = ROOT.TH1F("sigHist_%sDown"%(prefireName),"sigHistPUDown_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
+        	sigHistPrefireUp = ROOT.TH1F("sigHist_%sUp"%(prefireName),"sigHistPUUp_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
 
         sigHistScaleUp = ROOT.TH1F("sigHist_%s_%sUp"%(scaleName,channel),"sigHistScaleUp_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
 
         dataHist = getRebinnedHistogram(dataHistTemp, binning, "dataHist_%s"%channel)
 
+	
 
 	for index, lower in enumerate(binning):	
 		if index < len(binning)-1:
 			label = "CITo2Mu_Lam%dTeV%s_%s"%(L,interference,channel)
 			if "electron" in channel:
 				label = "CITo2E_Lam%dTeV%s_%s"%(L,interference,channel)
-			val = signalYields_default[label][str(index)][0]
+			if "ADD" in scanConfigName:
+				label = "ADDGravTo2Mu_Lam%d_%s"%(L,channel)
+				if "electron" in channel:
+					label = "ADDGravTo2E_Lam%d_%s"%(L,channel)
+			val = max(0,signalYields_default[label][str(index)][0])
 			err = signalYields_default[label][str(index)][1]
-			sigHistPDFUp.SetBinContent(index+1,max(0,val+val*pdfUncert[index]))
-			sigHistPDFDown.SetBinContent(index+1,max(0,val-val*pdfUncert[index]))
-			sigHist.SetBinContent(index+1,max(0,val))
-			sigHistStatUp.SetBinContent(index+1,max(0,val+val*err))
-			sigHistStatDown.SetBinContent(index+1,max(0,val-val*err))
+			sigHistPDFUp.SetBinContent(index+1,max(1e-9,val+val*pdfUncert[index]))
+			sigHistPDFDown.SetBinContent(index+1,max(1e-9,val-val*pdfUncert[index]))
+			sigHist.SetBinContent(index+1,max(1e-9,val))
+			sigHistStatUp.SetBinContent(index+1,max(1e-9,val+val*err))
+			sigHistStatDown.SetBinContent(index+1,max(1e-9,val-val*err))
 			val = signalYields_scaleDown[label][str(index)][0]
-			sigHistScaleDown.SetBinContent(index+1,max(0,val))
+			sigHistScaleDown.SetBinContent(index+1,max(1e-9,val))
+
+			val = signalYields_pdfWeightsUp[label][str(index)][0]
+			sigHistPdfWeightsUp.SetBinContent(index+1,max(1e-9,val))
+
+			val = signalYields_pdfWeightsDown[label][str(index)][0]
+			sigHistPdfWeightsDown.SetBinContent(index+1,max(1e-9,val))
+
 			if "muon" in channel:
 				val = signalYields_ID[label][str(index)][0]
-				sigHistIDUp.SetBinContent(index+1,max(0,val))
-				sigHistIDDown.SetBinContent(index+1,max(0,val))
+				sigHistIDUp.SetBinContent(index+1,max(1e-9,val))
+				sigHistIDDown.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_resolution[label][str(index)][0]
-				sigHistSmearDown.SetBinContent(index+1,max(0,val))
-				sigHistSmearUp.SetBinContent(index+1,max(0,val))
+				sigHistSmearDown.SetBinContent(index+1,max(1e-9,val))
+				sigHistSmearUp.SetBinContent(index+1,max(1e-9,val))
 				sigHistScaleUp.SetBinContent(index+1,sigHist.GetBinContent(index+1))
 			if "electron" in channel:
 				val = signalYields_scaleUp[label][str(index)][0]
-				sigHistScaleUp.SetBinContent(index+1,max(0,val))
+				sigHistScaleUp.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_piledown[label][str(index)][0]
-				sigHistPUDown.SetBinContent(index+1,max(0,val))
+				sigHistPUDown.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_pileup[label][str(index)][0]
-				sigHistPUUp.SetBinContent(index+1,max(0,val))
+				sigHistPUUp.SetBinContent(index+1,max(1e-9,val))
+				val = signalYields_prefireDown[label][str(index)][0]
+				sigHistPrefireDown.SetBinContent(index+1,max(1e-9,val))
+				val = signalYields_prefireUp[label][str(index)][0]
+				sigHistPrefireUp.SetBinContent(index+1,max(1e-9,val))
 
 	bkgIntegralDY = bkgHistDY.Integral()		
 	bkgIntegralOther = bkgHistOther.Integral()		
 	bkgIntegralJets = bkgHistJets.Integral()		
 	sigIntegral = sigHist.Integral()
-	if sigIntegral == 0.:
-		sigIntegral = 0.001
-		sigHist.SetBinContent(len(binning)-1,0.001)
-	if sigHistPDFUp.Integral() == 0:
-		sigHistPDFUp.SetBinContent(len(binning)-1,0.001)
-	if sigHistPDFDown.Integral() == 0:
-		sigHistPDFDown.SetBinContent(len(binning)-1,0.001)
-	if sigHistStatUp.Integral() == 0:
-		sigHistStatUp.SetBinContent(len(binning)-1,0.001)
-	if sigHistStatDown.Integral() == 0:
-		sigHistStatDown.SetBinContent(len(binning)-1,0.001)
-	if sigHistScaleDown.Integral() == 0:
-		sigHistScaleDown.SetBinContent(len(binning)-1,0.001)
-	if "muon" in channel:
-		if sigHistIDUp.Integral() == 0:
-			sigHistIDUp.SetBinContent(len(binning)-1,0.001)
-		if sigHistIDDown.Integral() == 0:	
-			sigHistIDDown.SetBinContent(len(binning)-1,0.001)
-		if sigHistSmearUp.Integral() == 0:
-			sigHistSmearUp.SetBinContent(len(binning)-1,0.001)
-		if sigHistSmearDown.Integral() == 0:	
-			sigHistSmearDown.SetBinContent(len(binning)-1,0.001)
-		if sigHistScaleUp.Integral() == 0:
-			sigHistScaleUp.SetBinContent(len(binning)-1,0.001)
-	if "electron" in channel:
-		if sigHistPUUp.Integral() == 0:
-			sigHistPUUp.SetBinContent(len(binning)-1,0.001)
-		if not sigHistPUDown.Integral() > 0.0:
-			sigHistPUDown.SetBinContent(len(binning)-1,0.001)
-		if sigHistScaleUp.Integral() == 0:
-			sigHistScaleUp.SetBinContent(len(binning)-1,0.001)
 
 	histFile.Write()
 	histFile.Close()
@@ -727,6 +766,9 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         from array import array
  
 
+
+	
+
 	if 'ADD' in scanConfigName:
 		model = 'ADD'
 	else: 
@@ -743,6 +785,12 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 
 		pkl = open("input/inputsCI/%ssignalYields_scaleDown.pkl"%model, "r")
 		signalYields_scaleDown = pickle.load(pkl)
+
+		pkl = open("input/inputsCI/%ssignalYields_pdfWeightsUp.pkl"%model, "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
+
+		pkl = open("input/inputsCI/%ssignalYields_pdfWeightsDown.pkl"%model, "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
 
 		#pkl = open("input/inputsCI/signalYields_piledown.pkl", "r")
 		#signalYields_piledown = pickle.load(pkl)
@@ -766,6 +814,16 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 		signalYields_piledown = pickle.load(pkl)
 		pkl = open("input/inputsCI/%ssignalYieldsEle_pileup.pkl"%model, "r")
 		signalYields_pileup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle_pdfWeightsUp.pkl"%model, "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle_pdfWeightsDown.pkl"%model, "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle_prefireup.pkl"%model, "r")
+		signalYields_prefireup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsEle_prefiredown.pkl"%model, "r")
+		signalYields_prefiredown = pickle.load(pkl)
+
+
 
 
 	histFile = ROOT.TFile("%s.root"%name, "RECREATE")	
@@ -777,6 +835,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 	if "electron" in channel:
 		bkgHistDYPUDownTemp = inputFile.Get("bkgHistDYPUDown_%s"%channel)
 		bkgHistDYPUUpTemp = inputFile.Get("bkgHistDYPUUp_%s"%channel)
+		bkgHistDYPrefireDownTemp = inputFile.Get("bkgHistDYPrefireDown_%s"%channel)
+		bkgHistDYPrefireUpTemp = inputFile.Get("bkgHistDYPrefireUp_%s"%channel)
 		bkgHistDYScaleUpTemp = inputFile.Get("bkgHistDYScaleUp_%s"%channel)
 
 	bkgHistOtherTemp = inputFile.Get("bkgHistOther_%s"%channel)
@@ -788,12 +848,19 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 		bkgHistOtherScaleUpTemp = inputFile.Get("bkgHistOtherScaleUp_%s"%channel)
 		bkgHistOtherPUDownTemp = inputFile.Get("bkgHistOtherPUDown_%s"%channel)
 		bkgHistOtherPUUpTemp = inputFile.Get("bkgHistOtherPUUp_%s"%channel)
+		bkgHistOtherPrefireDownTemp = inputFile.Get("bkgHistOtherPrefireDown_%s"%channel)
+		bkgHistOtherPrefireUpTemp = inputFile.Get("bkgHistOtherPrefireUp_%s"%channel)
 
 	bkgHistJetsTemp = inputFile.Get("bkgHistJets_%s"%channel)
-	
-	pdfUncert = [0.01,0.0125,0.02,0.035,0.065,0.10]
-	pdfUncertDY = [0.0133126577202494, 0.0147788328624159, 0.01842209757115, 0.0243644300786998, 0.039572839847093, 0.1144248733154136]
-	pdfUncertOther = [0.0358232181870253, 0.088892531404347, 0.1254268509362337, 0.1736824180528946, 0.2024257617076786, 0.3369525304968204]
+	if "ADD" in scanConfigName:
+		pdfUncert = [0.10312327041448502,0.11631416752423052,0.13116564710563733,0.14414683366902137,0.17666058539426496]	
+		pdfUncertDY = [0.0365003172410037, 0.0429886021839947, 0.047645134519074, 0.069030181137942, 0.119036982092236]
+		pdfUncertOther = [0.1789670634151592, 0.269902491201715, 0.2699234253751208, 0.2984407542188063, 0.3777961331626525]	
+	else:
+		pdfUncert = [0.029808675319316736,0.032492944178882606,0.046693632068081733,0.06985339137281024,0.11520346316811705,0.17965523337854952]
+		pdfUncertDY = [0.0133126577202494, 0.0147788328624159, 0.01842209757115, 0.0243644300786998, 0.039572839847093, 0.1144248733154136]
+		pdfUncertOther = [0.0358232181870253, 0.088892531404347, 0.1254268509362337, 0.1736824180528946, 0.2024257617076786, 0.3369525304968204]
+
 	dataHistTemp = inputFile.Get("dataHist_%s"%channel)
 	dataIntegral = dataHistTemp.Integral(dataHistTemp.FindBin(lowestMass),dataHistTemp.GetNbinsX())
 
@@ -803,6 +870,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 	pdfName = "pdf"
 	IDName = "ID"
 	PUName = "PU"
+	weightName = "PdfWeights"
+	prefireName = "prefire"
 
 
 	bkgHistDY = getRebinnedHistogram(bkgHistDYTemp,binning,"bkgHistDY_%s"%channel)
@@ -821,6 +890,9 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         	bkgHistDYScaleUp = getRebinnedHistogram(bkgHistDYScaleUpTemp,binning,"bkgHistDY_%s_%sUp"%(scaleName,channel))
 	        bkgHistDYPUDown = getRebinnedHistogram(bkgHistDYPUDownTemp, binning, "bkgHistDY_%sDown"%(PUName))
         	bkgHistDYPUUp = getRebinnedHistogram(bkgHistDYPUUpTemp, binning, "bkgHistDY_%sUp"%(PUName))
+	        bkgHistDYPrefireDown = getRebinnedHistogram(bkgHistDYPrefireDownTemp, binning, "bkgHistDY_%sDown"%(prefireName))
+        	bkgHistDYPrefireUp = getRebinnedHistogram(bkgHistDYPrefireUpTemp, binning, "bkgHistDY_%sUp"%(prefireName))
+
         bkgHistDYPDFDown = getPDFUncertHistogram(bkgHistDY,"bkgHistDY_%sDown"%(pdfName), pdfUncertDY)
         bkgHistDYPDFUp =   getPDFUncertHistogram(bkgHistDY,"bkgHistDY_%sUp"%(pdfName),   pdfUncertDY,True)
 
@@ -840,10 +912,14 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         	bkgHistOtherScaleUp = getRebinnedHistogram(bkgHistOtherScaleUpTemp,binning,"bkgHistOther_%s_%sUp"%(scaleName,channel))
 	        bkgHistOtherPUDown = getRebinnedHistogram(bkgHistOtherPUDownTemp, binning, "bkgHistOther_%sDown"%(PUName))
         	bkgHistOtherPUUp = getRebinnedHistogram(bkgHistOtherPUUpTemp, binning, "bkgHistOther_%sUp"%(PUName))
+	        bkgHistOtherPrefireDown = getRebinnedHistogram(bkgHistOtherPrefireDownTemp, binning, "bkgHistOther_%sDown"%(prefireName))
+        	bkgHistOtherPrefireUp = getRebinnedHistogram(bkgHistOtherPrefireUpTemp, binning, "bkgHistOther_%sUp"%(prefireName))
+
         bkgHistOtherPDFDown = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sDown"%(pdfName), pdfUncertOther)
         bkgHistOtherPDFUp = getPDFUncertHistogram(bkgHistOther,"bkgHistOther_%sUp"%(pdfName), pdfUncertOther,True)
 
-	bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
+	
+        bkgHistJets = getRebinnedHistogram(bkgHistJetsTemp,binning,"bkgHistJets_%s"%channel)
 
         sigHist = ROOT.TH1F("sigHist_%s"%channel,"sigHist_%s"%channel,len(binning)-1,array('f',binning))
         sigHistStatUp = ROOT.TH1F("sigHist_%s_%sUp"%(statName,channel),"sigHistStat_%s_%sUp"%(channel,statName),len(binning)-1,array('f',binning))
@@ -851,6 +927,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         sigHistScaleDown = ROOT.TH1F("sigHist_%s_%sDown"%(scaleName,channel),"sigHistScaleDown_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
         sigHistPDFDown = ROOT.TH1F("sigHist_%sDown"%(pdfName),"sigHistPDFDown_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
         sigHistPDFUp = ROOT.TH1F("sigHist_%sUp"%(pdfName),"sigHistPDFUp_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
+        sigHistPdfWeightsDown = ROOT.TH1F("sigHist_%sDown"%(weightName),"sigHistDown_%s_%s"%(channel,weightName),len(binning)-1,array('f',binning))
+        sigHistPdfWeightsUp = ROOT.TH1F("sigHist_%sUp"%(weightName),"sigHistUp_%s_%s"%(channel,weightName),len(binning)-1,array('f',binning))
 	if "muon" in channel:
         	sigHistIDDown = ROOT.TH1F("sigHist_%s_%sDown"%(IDName,channel),"sigHistIDDown_%s_%s"%(channel,IDName),len(binning)-1,array('f',binning))
         	sigHistIDUp = ROOT.TH1F("sigHist_%s_%sUp"%(IDName,channel),"sigHistIDUp_%s_%s"%(channel,IDName),len(binning)-1,array('f',binning))
@@ -859,6 +937,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 	else:
 	        sigHistPUDown = ROOT.TH1F("sigHist_%sDown"%(PUName),"sigHistPUDown_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
         	sigHistPUUp = ROOT.TH1F("sigHist_%sUp"%(PUName),"sigHistPUUp_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
+	        sigHistPrefireDown = ROOT.TH1F("sigHist_%sDown"%(prefireName),"sigHistPrefireDown_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
+        	sigHistPrefireUp = ROOT.TH1F("sigHist_%sUp"%(prefireName),"sigHistPrefireUp_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
 
         sigHistScaleUp = ROOT.TH1F("sigHist_%s_%sUp"%(scaleName,channel),"sigHistScaleUp_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
 
@@ -868,6 +948,9 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         intHistScaleDown = ROOT.TH1F("intHist_%s_%sDown"%(scaleName,channel),"intHistScaleDown_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
         intHistPDFDown = ROOT.TH1F("intHist_%sDown"%(pdfName),"intHistPDFDown_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
         intHistPDFUp = ROOT.TH1F("intHist_%sUp"%(pdfName),"intHistPDFUp_%s_%s"%(channel,pdfName),len(binning)-1,array('f',binning))
+        intHistPdfWeightsDown = ROOT.TH1F("intHist_%sDown"%(weightName),"intHistDown_%s_%s"%(channel,weightName),len(binning)-1,array('f',binning))
+        intHistPdfWeightsUp = ROOT.TH1F("intHist_%sUp"%(weightName),"intHistUp_%s_%s"%(channel,weightName),len(binning)-1,array('f',binning))
+	
 	if "muon" in channel:
         	intHistIDDown = ROOT.TH1F("intHist_%s_%sDown"%(IDName,channel),"intHistIDDown_%s_%s"%(channel,IDName),len(binning)-1,array('f',binning))
         	intHistIDUp = ROOT.TH1F("intHist_%s_%sUp"%(IDName,channel),"intHistIDUp_%s_%s"%(channel,IDName),len(binning)-1,array('f',binning))
@@ -876,6 +959,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 	else:
 	        intHistPUDown = ROOT.TH1F("intHist_%sDown"%(PUName),"intHistPUDown_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
         	intHistPUUp = ROOT.TH1F("intHist_%sUp"%(PUName),"intHistPUUp_%s_%s"%(channel,PUName),len(binning)-1,array('f',binning))
+	        intHistPrefireDown = ROOT.TH1F("intHist_%sDown"%(prefireName),"intHistprefireDown_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
+        	intHistPrefireUp = ROOT.TH1F("intHist_%sUp"%(prefireName),"intHistPrefireUp_%s_%s"%(channel,prefireName),len(binning)-1,array('f',binning))
 
         intHistScaleUp = ROOT.TH1F("intHist_%s_%sUp"%(scaleName,channel),"intHistScaleUp_%s_%s"%(channel,scaleName),len(binning)-1,array('f',binning))
 
@@ -886,6 +971,7 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 
 	if "LL" in interference:  hel = "LL"
 	elif "LR" in interference: hel = "LR"
+	elif "RL" in interference: hel = "RL"
 	else:                     hel = "RR"
 	for index, lower in enumerate(binning):	
 		if index < len(binning)-1:
@@ -893,36 +979,50 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 			if "electron" in channel:
 				label = "CITo2E_Lam%dTeV%s_%s"%(L,hel,channel)
 			val = signalYields_default[label][str(index)][0]
-			val = max(0,val)
+			val = max(1e-9,val)
 			err = signalYields_default[label][str(index)][1]
-			sigHistPDFUp.SetBinContent(index+1,max(0,val+val*pdfUncert[index]))
-			sigHistPDFDown.SetBinContent(index+1,max(0,val-val*pdfUncert[index]))
-			sigHist.SetBinContent(index+1,max(0,val))
-			sigHistStatUp.SetBinContent(index+1,max(0,val+val*err))
-			sigHistStatDown.SetBinContent(index+1,max(0,val-val*err))
+			sigHistPDFUp.SetBinContent(index+1,max(1e-9,val+val*pdfUncert[index]))
+			sigHistPDFDown.SetBinContent(index+1,max(1e-9,val-val*pdfUncert[index]))
+			sigHist.SetBinContent(index+1,max(1e-9,val))
+			sigHistStatUp.SetBinContent(index+1,max(1e-9,val+val*err))
+			sigHistStatDown.SetBinContent(index+1,max(1e-9,val-val*err))
 			val = signalYields_scaleDown[label][str(index)][0]
-			val = max(0,val)
-			sigHistScaleDown.SetBinContent(index+1,max(0,val))
+			val = max(1e-9,val)
+			sigHistScaleDown.SetBinContent(index+1,max(1e-9,val))
+
+			val = signalYields_pdfWeightsDown[label][str(index)][0]
+			val = max(1e-9,val)
+			sigHistPdfWeightsDown.SetBinContent(index+1,max(1e-9,val))
+			val = signalYields_pdfWeightsUp[label][str(index)][0]
+			val = max(1e-9,val)
+			sigHistPdfWeightsUp.SetBinContent(index+1,max(1e-9,val))
+
 			if "muon" in channel:
 				val = signalYields_ID[label][str(index)][0]
-				val = max(0,val)
-				sigHistIDUp.SetBinContent(index+1,max(0,val))
-				sigHistIDDown.SetBinContent(index+1,max(0,val))
+				val = max(1e-9,val)
+				sigHistIDUp.SetBinContent(index+1,max(1e-9,val))
+				sigHistIDDown.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_resolution[label][str(index)][0]
-				val = max(0,val)
-				sigHistSmearDown.SetBinContent(index+1,max(0,val))
-				sigHistSmearUp.SetBinContent(index+1,max(0,val))
+				val = max(1e-9,val)
+				sigHistSmearDown.SetBinContent(index+1,max(1e-9,val))
+				sigHistSmearUp.SetBinContent(index+1,max(1e-9,val))
 				sigHistScaleUp.SetBinContent(index+1,sigHist.GetBinContent(index+1))
 			if "electron" in channel:
 				val = signalYields_scaleUp[label][str(index)][0]
-				val = max(0,val)
-				sigHistScaleUp.SetBinContent(index+1,max(0,val))
+				val = max(1e-9,val)
+				sigHistScaleUp.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_piledown[label][str(index)][0]
-				val = max(0,val)
-				sigHistPUDown.SetBinContent(index+1,max(0,val))
+				val = max(1e-9,val)
+				sigHistPUDown.SetBinContent(index+1,max(1e-9,val))
 				val = signalYields_pileup[label][str(index)][0]
-				val = max(0,val)
-				sigHistPUUp.SetBinContent(index+1,max(0,val))
+				val = max(1e-9,val)
+				sigHistPUUp.SetBinContent(index+1,max(1e-9,val))
+				val = signalYields_prefiredown[label][str(index)][0]
+				val = max(1e-9,val)
+				sigHistPrefireDown.SetBinContent(index+1,max(1e-9,val))
+				val = signalYields_prefireup[label][str(index)][0]
+				val = max(1e-9,val)
+				sigHistPrefireUp.SetBinContent(index+1,max(1e-9,val))
 
 	for index, lower in enumerate(binning):	
 		if index < len(binning)-1:
@@ -930,36 +1030,52 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 			if "electron" in channel:
 				label = "CITo2E_Lam%dTeV%s_%s"%(L,interference,channel)
 			val = signalYields_default[label][str(index)][0]
-			val = max(0,val)
 			err = signalYields_default[label][str(index)][1]
+			if err > 1.0:
+				err = 0.5
 			intHistPDFUp.SetBinContent(index+1,val+val*pdfUncert[index])
 			intHistPDFDown.SetBinContent(index+1,val-val*pdfUncert[index])
 			intHist.SetBinContent(index+1,val)
-			intHistStatUp.SetBinContent(index+1,val+val*err)
-			intHistStatDown.SetBinContent(index+1,max(0,val-val*err))
+			intHistStatUp.SetBinContent(index+1,val+abs(val*err))
+			intHistStatDown.SetBinContent(index+1,max(1e-9,val-abs(val*err)))
+			#intHistStatDown.SetBinContent(index+1,val-val*err)
 			val = signalYields_scaleDown[label][str(index)][0]
-			val = max(0,val)
+			#val = max(1e-9,val)
 			intHistScaleDown.SetBinContent(index+1,val)
+
+			val = signalYields_pdfWeightsDown[label][str(index)][0]
+			#val = max(1e-9,val)
+			intHistPdfWeightsDown.SetBinContent(index+1,max(1e-9,val))
+			val = signalYields_pdfWeightsUp[label][str(index)][0]
+			#val = max(1e-9,val)
+			intHistPdfWeightsUp.SetBinContent(index+1,max(1e-9,val))
+
 			if "muon" in channel:
 				val = signalYields_ID[label][str(index)][0]
-				val = max(0,val)
+				#val = max(1e-9,val)
 				intHistIDUp.SetBinContent(index+1,val)
 				intHistIDDown.SetBinContent(index+1,val)
 				val = signalYields_resolution[label][str(index)][0]
-				val = max(0,val)
+				#val = max(1e-9,val)
 				intHistSmearDown.SetBinContent(index+1,val)
 				intHistSmearUp.SetBinContent(index+1,val)
 				intHistScaleUp.SetBinContent(index+1,intHist.GetBinContent(index+1))
 			if "electron" in channel:
 				val = signalYields_scaleUp[label][str(index)][0]
-				val = max(0,val)
+				#val = max(1e-9,val)
 				intHistScaleUp.SetBinContent(index+1,val)
 				val = signalYields_piledown[label][str(index)][0]
-				val = max(0,val)
+				#val = max(1e-9,val)
 				intHistPUDown.SetBinContent(index+1,val)
 				val = signalYields_pileup[label][str(index)][0]
-				val = max(0,val)
+				#val = max(1e-9,val)
 				intHistPUUp.SetBinContent(index+1,val)
+				val = signalYields_prefiredown[label][str(index)][0]
+				#val = max(1e-9,val)
+				intHistPrefireDown.SetBinContent(index+1,val)
+				val = signalYields_prefireup[label][str(index)][0]
+				#val = max(1e-9,val)
+				intHistPrefireUp.SetBinContent(index+1,val)
 
 
 
@@ -969,6 +1085,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
         intHistScaleDown.Add(bkgHistDYScaleDown.Clone())
         intHistPDFDown.Add(bkgHistDYPDFDown.Clone())
         intHistPDFUp.Add(bkgHistDYPDFUp.Clone())
+        intHistPdfWeightsDown.Add(bkgHistDY.Clone())
+        intHistPdfWeightsUp.Add(bkgHistDY.Clone())
 	if "muon" in channel:
          	intHistIDDown.Add(bkgHistDYIDDown.Clone())
         	intHistIDUp.Add(bkgHistDYIDUp.Clone())
@@ -977,6 +1095,8 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 	else:
 	        intHistPUDown.Add(bkgHistDYPUDown.Clone())
         	intHistPUUp.Add(bkgHistDYPUUp.Clone())
+	        intHistPrefireDown.Add(bkgHistDYPrefireDown.Clone())
+        	intHistPrefireUp.Add(bkgHistDYPrefireUp.Clone())
 
         intHistScaleUp.Add(bkgHistDYScaleUp.Clone())
 
@@ -996,10 +1116,13 @@ def createHistogramsIntCI(L,interference,name,channel,scanConfigName,dataFile=""
 
 
 
-def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFile=""):
+def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,addSigDY,ADD,dataFile=""):
 	ROOT.RooMsgService.instance().setGlobalKillBelow(RooFit.FATAL)
 
-	mThresh = float(mThresh)
+	binMap={'400':'0','500':'1','700':'2','1100':'3','1900':'4','3500':'5'}
+	#mThreshList = binMap[mThresh]
+	mThreshList = int(mThresh)
+	mThreshList = mThresh
 
 	configName ="channelConfig_%s"%channel
         config =  __import__(configName)
@@ -1007,40 +1130,53 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	scanConfigName ="scanConfiguration_%s"%scanConfigName
         scanConfig =  __import__(scanConfigName)
 	
+	#kaushal added
+	for x in range(len(scanConfig.binning)-1):
+		if (int(mThresh) == scanConfig.binning[x]):
+			upperBound = scanConfig.binning[x+1]
+	
 	
 	result = {}	
 	
 
 	import pickle
-
+	
+	#dummy instantiation
+	fileBegin = "ADD" if ADD else "CI"
 	if "muon" in channel:
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_default.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBin_default.pkl", "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBin_scaleDown.pkl", "r")
 		signalYields_scaleDown = pickle.load(pkl)
-
-		#pkl = open("input/inputsCI/CIsignalYieldsSingleBin_piledown.pkl", "r")
-		#signalYields_piledown = pickle.load(pkl)
-
-#		pkl = open("input/inputsCI/signalYieldsSingleBin_pileup.pkl", "r")
-#		signalYields_pileup = pickle.load(pkl)
-
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_resolution.pkl", "r")
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBin_pdfWeightsUp.pkl"%fileBegin, "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBin_pdfWeightsDown.pkl"%fileBegin, "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBin_resolution.pkl", "r")
 		signalYields_resolution = pickle.load(pkl)
-
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBin_ID.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBin_ID.pkl", "r")
 		signalYields_ID = pickle.load(pkl)
 	elif "electron" in channel:
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_default.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBinEle_default.pkl", "r")
 		signalYields_default = pickle.load(pkl)
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_scaleUp.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBinEle_scaleUp.pkl", "r")
 		signalYields_scaleUp = pickle.load(pkl)
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_scaleDown.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBinEle_scaleDown.pkl", "r")
 		signalYields_scaleDown = pickle.load(pkl)
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_piledown.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBinEle_piledown.pkl", "r")
 		signalYields_piledown = pickle.load(pkl)
-		pkl = open("input/inputsCI/CIsignalYieldsSingleBinEle_pileup.pkl", "r")
+		pkl = open("input/inputsCI/"+fileBegin+"signalYieldsSingleBinEle_pileup.pkl", "r")
 		signalYields_pileup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBinEle_pdfWeightsUp.pkl"%fileBegin, "r")
+		signalYields_pdfWeightsUp = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBinEle_pdfWeightsDown.pkl"%fileBegin, "r")
+		signalYields_pdfWeightsDown = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBinEle_prefireup.pkl"%fileBegin, "r")
+		signalYields_prefireup = pickle.load(pkl)
+		pkl = open("input/inputsCI/%ssignalYieldsSingleBinEle_prefiredown.pkl"%fileBegin, "r")
+		signalYields_prefiredown = pickle.load(pkl)
+
+	
 	inputFileName = "input/inputsCI/inputsCI_%s.root"%(channel)
         inputFile = ROOT.TFile(inputFileName, "OPEN")
 
@@ -1051,7 +1187,9 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	bkgHistDYPUDown = inputFile.Get("bkgHistDYPUDown_%s"%channel)
 	bkgHistDYPUUp = inputFile.Get("bkgHistDYPUUp_%s"%channel)
 	bkgHistDYID = inputFile.Get("bkgHistDYWeighted_%s"%channel)
-	
+	bkgHistDYPrefireDown = inputFile.Get("bkgHistDYPrefireDown_%s"%channel)
+	bkgHistDYPrefireUp = inputFile.Get("bkgHistDYPrefireUp_%s"%channel)
+
 	bkgHistOther = inputFile.Get("bkgHistOther_%s"%channel)
 	bkgHistOtherSmear = inputFile.Get("bkgHistOtherSmeared_%s"%channel)
 	bkgHistOtherScaleDown = inputFile.Get("bkgHistOtherScaleDown_%s"%channel)
@@ -1059,39 +1197,60 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	bkgHistOtherPUDown = inputFile.Get("bkgHistOtherPUDown_%s"%channel)
 	bkgHistOtherPUUp = inputFile.Get("bkgHistOtherPUUp_%s"%channel)
 	bkgHistOtherID = inputFile.Get("bkgHistOtherWeighted_%s"%channel)
+	bkgHistOtherPrefireDown = inputFile.Get("bkgHistOtherPrefireDown_%s"%channel)
+	bkgHistOtherPrefireUp = inputFile.Get("bkgHistOtherPrefireUp_%s"%channel)
 
 	bkgHistJets = inputFile.Get("bkgHistJets_%s"%channel)
 
 	if "muon" in channel:
-		label = "CITo2Mu_Lam%dTeV%s_%s"%(L,interference,channel)
+		if ADD:
+			label = "ADDGravTo2Mu_Lam%d%s_%s"%(L,interference,channel)
+		else:
+			label = "CITo2Mu_Lam%dTeV%s_%s"%(L,interference,channel)
 	elif "electron" in channel:
-		label = "CITo2E_Lam%dTeV%s_%s"%(L,interference,channel)
-	val = signalYields_default[label][str(int(mThresh))][0]
-	err = signalYields_default[label][str(int(mThresh))][1]
+		if ADD:
+			label = "ADDGravTo2E_Lam%d%s_%s"%(L,interference,channel)
+		else:
+			label = "CITo2E_Lam%dTeV%s_%s"%(L,interference,channel)
+	val = signalYields_default[label][mThreshList][0]
+	err = signalYields_default[label][mThreshList][1]
 	
-	valScaleDown = signalYields_scaleDown[label][str(int(mThresh))][0]
+	valScaleDown = signalYields_scaleDown[label][mThreshList][0]
 	if "electron" in channel:
-		valScaleUp = signalYields_scaleUp[label][str(int(mThresh))][0]
-		valPUDown = signalYields_piledown[label][str(int(mThresh))][0]
-		valPUUp = signalYields_pileup[label][str(int(mThresh))][0]
+		valScaleUp = signalYields_scaleUp[label][mThreshList][0]
+		valPUDown = signalYields_piledown[label][mThreshList][0]
+		valPUUp = signalYields_pileup[label][mThreshList][0]
+		valPrefireDown = signalYields_prefiredown[label][mThreshList][0]
+		valPrefireUp = signalYields_prefireup[label][mThreshList][0]
 
 	if "muon" in channel:
-		valID = signalYields_ID[label][str(int(mThresh))][0]
-		valSmear = signalYields_resolution[label][str(int(mThresh))][0]
+		valID = signalYields_ID[label][mThreshList][0]
+		valSmear = signalYields_resolution[label][mThreshList][0]
 
 	result["sig"] = val 
 	result["sigStats"] = 1. + err
 
 	if "electron" in channel:
-		result["sigScale"] = [abs(valScaleDown/val),abs(valScaleUp/val)]	
-		result["sigPU"] = [abs(valPUUp/val),abs(valPUDown/val)]
+		if (val==0):
+			result["sigScale"]=[0.0,0.0]
+		else:
+			result["sigScale"] = [abs(valScaleDown/val),abs(valScaleUp/val)]
+		if (val==0):
+			result["sigPU"]=[0.0,0.0]
+		else:
+			result["sigPU"] = [abs(valPUUp/val),abs(valPUDown/val)]
+		if (val==0):
+			result["sigPrefire"]=[0.0,0.0]
+		else:
+			result["sigPrefire"] = [abs(valPrefireUp/val),abs(valPrefireDown/val)]
+
 	if "muon" in channel:
 		result["sigScale"] = [abs(valScaleDown/val),1.]
 		result["sigID"] = abs(1./(valID/val))
 		result["sigRes"] = abs(valSmear/val) 
-	result["sigPDF"] = 1.075 #dummy value for now
+	result["sigPDF"] = 1.13312898065358908
 	
-
+	mThresh = float(mThresh)
 	dataHist = inputFile.Get("dataHist_%s"%channel)
 	result["data"] = dataHist.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)	
 
@@ -1101,21 +1260,21 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	result["bkgDYStats"] = 1.+err/val
 
 	if "electron" in channel:
-			result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])]
-			result["bkgDYPU"] =[ abs(bkgHistDYPUUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYPUDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])]
+			result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(bkgHistDYScaleDown.FindBin(mThresh),bkgHistDYScaleDown.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYScaleUp.Integral(bkgHistDYScaleUp.FindBin(mThresh),bkgHistDYScaleUp.GetNbinsX()+1)/result["bkgDY"])]
+			result["bkgDYPU"] =[ abs(bkgHistDYPUUp.Integral(bkgHistDYPUUp.FindBin(mThresh),bkgHistDYPUUp.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYPUDown.Integral(bkgHistDYPUDown.FindBin(mThresh),bkgHistDYPUDown.GetNbinsX()+1)/result["bkgDY"])]
+			result["bkgDYPrefire"] =[ abs(bkgHistDYPrefireUp.Integral(bkgHistDYPrefireUp.FindBin(mThresh),bkgHistDYPrefireUp.GetNbinsX()+1)/result["bkgDY"]) , abs(bkgHistDYPrefireDown.Integral(bkgHistDYPrefireDown.FindBin(mThresh),bkgHistDYPrefireDown.GetNbinsX()+1)/result["bkgDY"])]
 	if "muon" in channel:
-		print abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1))
-		result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) , 1.]
-		if abs(bkgHistDYSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) >=1:
-			result["bkgDYRes"] = abs(bkgHistDYSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])
-		else:
-			result["bkgDYRes"] = 1./abs(bkgHistDYSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])
-		if abs(bkgHistDYID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) >=1:
-			result["bkgDYID"] = abs(bkgHistDYID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])
-		else:
-			result["bkgDYID"] = 1./abs(bkgHistDYID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"])
-	result["bkgDYPDF"] = 1.057378696848 # from Markus's results
 
+		result["bkgDYScale"] =[ abs(bkgHistDYScaleDown.Integral(bkgHistDYScaleDown.FindBin(mThresh),bkgHistDYScaleDown.GetNbinsX()+1)/result["bkgDY"]) , 1.]
+		if abs(bkgHistDYSmear.Integral(bkgHistDYSmear.FindBin(mThresh),bkgHistDYSmear.GetNbinsX()+1)/result["bkgDY"]) >=1:
+			result["bkgDYRes"] = abs(bkgHistDYSmear.Integral(bkgHistDYSmear.FindBin(mThresh),bkgHistDYSmear.GetNbinsX()+1)/result["bkgDY"])
+		else:
+			result["bkgDYRes"] = 1./abs(bkgHistDYSmear.Integral(bkgHistDYSmear.FindBin(mThresh),bkgHistDYSmear.GetNbinsX()+1)/result["bkgDY"])
+		if abs(bkgHistDYID.Integral(bkgHistDYID.FindBin(mThresh),bkgHistDYID.GetNbinsX()+1)/result["bkgDY"]) >=1:
+			result["bkgDYID"] = abs(bkgHistDYID.Integral(bkgHistDYID.FindBin(mThresh),bkgHistDYID.GetNbinsX()+1)/result["bkgDY"])
+		else:
+			result["bkgDYID"] = 1./abs(bkgHistDYID.Integral(bkgHistDYID.FindBin(mThresh),bkgHistDYID.GetNbinsX()+1)/result["bkgDY"])
+	result["bkgDYPDF"] = 1.057378696848 # from Markus's results
 	val = bkgHistOther.IntegralAndError(bkgHistOther.FindBin(mThresh),bkgHistOther.GetNbinsX()+1,err)
 	result["bkgOther"] = val
 	if val > 0 and err > 0:
@@ -1123,41 +1282,43 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,dataFil
 	else:
 		result["bkgOtherStats"] = 1.
 
-	result["bkgOther"] = abs(bkgHistOther.Integral(dataHist.FindBin(mThresh),bkgHistOther.GetNbinsX()+1))
+	result["bkgOther"] = abs(bkgHistOther.Integral(bkgHistOther.FindBin(mThresh),bkgHistOther.GetNbinsX()+1))
 	
 	if "electron" in channel:
-			if result["bkgOther"] > 0:
-				if abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)) > 0:
-					result["bkgOtherScale"] = [ abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
-				else:
-					result["bkgOtherScale"] = [ 1.0, abs(bkgHistOtherScaleUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
-
-				result["bkgOtherPU"] =[ abs(bkgHistOtherPUUp.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherPUDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])]
-			else:
-				result["bkgOtherScale"] = [1.,1.]
-				result["bkgOtherPU"] =[ 1.,1.]
-	if "muon" in channel:
-		if result["bkgOther"] > 0 and abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)) > 0:
-			result["bkgOtherScale"] =[ abs(bkgHistOtherScaleDown.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) , 1.]
-		else:
-			result["bkgOtherScale"] =[1.,1.]
 		if result["bkgOther"] > 0:
-			if  abs(bkgHistOtherSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"]) >= 1:
-				result["bkgOtherRes"] = abs(bkgHistOtherSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])	 
-			else:
-				result["bkgOtherRes"] = 1./abs(bkgHistOtherSmear.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])
+			result["bkgOtherScale"] =[ abs(bkgHistOtherScaleDown.Integral(bkgHistOtherScaleDown.FindBin(mThresh),bkgHistOtherScaleDown.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherScaleUp.Integral(bkgHistOtherScaleUp.FindBin(mThresh),bkgHistOtherScaleUp.GetNbinsX()+1)/result["bkgOther"])]
+			result["bkgOtherPU"] =[ abs(bkgHistOtherPUUp.Integral(bkgHistOtherPUUp.FindBin(mThresh),bkgHistOtherPUUp.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherPUDown.Integral(bkgHistOtherPUDown.FindBin(mThresh),bkgHistOtherPUDown.GetNbinsX()+1)/result["bkgOther"])]
+			result["bkgOtherPrefire"] =[ abs(bkgHistOtherPrefireUp.Integral(bkgHistOtherPrefireUp.FindBin(mThresh),bkgHistOtherPrefireUp.GetNbinsX()+1)/result["bkgOther"]) , abs(bkgHistOtherPrefireDown.Integral(bkgHistOtherPrefireDown.FindBin(mThresh),bkgHistOtherPrefireDown.GetNbinsX()+1)/result["bkgOther"])]
+		else:
+			result["bkgOtherScale"] = 1.
+			result["bkgOtherPU"] = 1.
+			result["bkgOtherPrefire"] = 1.
 
-			if abs(bkgHistOtherID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgDY"]) >= 1:
-				result["bkgOtherID"] = abs(bkgHistOtherID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])
+	else:
+		if result["bkgOther"] > 0:
+			result["bkgOtherScale"] =[ abs(bkgHistOtherScaleDown.Integral(bkgHistOtherScaleDown.FindBin(mThresh),bkgHistOtherScaleDown.GetNbinsX()+1)/result["bkgOther"])]
+			if  abs(bkgHistOtherSmear.Integral(bkgHistOtherSmear.FindBin(mThresh),bkgHistOtherSmear.GetNbinsX()+1)/result["bkgOther"]) >= 1:
+				result["bkgOtherRes"] = abs(bkgHistOtherSmear.Integral(bkgHistOtherSmear.FindBin(mThresh),bkgHistOtherSmear.GetNbinsX()+1)/result["bkgOther"])	 
 			else:
-				result["bkgOtherID"] = 1./abs(bkgHistOtherID.Integral(dataHist.FindBin(mThresh),dataHist.GetNbinsX()+1)/result["bkgOther"])
+				result["bkgOtherRes"] = 1./abs(bkgHistOtherSmear.Integral(bkgHistOtherSmear.FindBin(mThresh),bkgHistOtherSmear.GetNbinsX()+1)/result["bkgOther"])
+
+			if abs(bkgHistOtherID.Integral(bkgHistOtherID.FindBin(mThresh),bkgHistOtherID.GetNbinsX()+1)/result["bkgDY"]) >= 1:
+				result["bkgOtherID"] = abs(bkgHistOtherID.Integral(bkgHistOtherID.FindBin(mThresh),bkgHistOtherID.GetNbinsX()+1)/result["bkgOther"])
+			else:
+				result["bkgOtherID"] = 1./abs(bkgHistOtherID.Integral(bkgHistOtherID.FindBin(mThresh),bkgHistOtherID.GetNbinsX()+1)/result["bkgOther"])
 		else:
 			result["bkgOtherRes"] = 1.
 			result["bkgOtherID"] = 1.
+			result["bkgOtherScale"] = 1.
  
 	result["bkgOtherPDF"] = 1.170675011666 # form Markus's results 
 
 	result["bkgJets"] = bkgHistJets.Integral(bkgHistJets.FindBin(mThresh),bkgHistJets.GetNbinsX()+1)
+
+	#changed real quick by kaushal
+	if addSigDY:
+		result["sig"]+=result["bkgDY"]	
+		result["sig"] = result["sig"]/result["sig"]
 
         return result
 	

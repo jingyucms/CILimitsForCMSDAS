@@ -183,7 +183,6 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
         	if printStats: print massPoint,":",limits[massPoint][lower2Sig],limits[massPoint][lower1Sig],limits[massPoint][medianNr],limits[massPoint][upper1Sig],limits[massPoint][upper2Sig]
     		#fill lists:
         	expectedx.append(massPoint)
-		print massPoint, limits[massPoint][medianNr]
         	expectedy.append(limits[massPoint][medianNr])
         	expected1SigLow.append(limits[massPoint][lower1Sig])
         	expected1SigHigh.append(limits[massPoint][upper1Sig])
@@ -200,6 +199,13 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	if printStats: print "length of expectedx: ", len(expectedx)
     	if printStats: print "length of expected1SigLow: ", len(expected1SigLow)
     	if printStats: print "length of expected1SigHigh: ", len(expected1SigHigh)
+
+
+	Graph1SUp   =TGraph(len(expX),expX,numpy.array(expected1SigHigh))
+	Graph1SDown =TGraph(len(expX),expX,numpy.array(expected1SigLow))
+	Graph2SUp   =TGraph(len(expX),expX,numpy.array(expected2SigHigh))
+	Graph2SDown =TGraph(len(expX),expX,numpy.array(expected2SigLow))
+
 
 	#Here is some Voodoo via Sam:
     	for x in range (0,len(expectedx)):
@@ -304,18 +310,19 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
 
 	#Draw the graphs:
 	#plotPad.SetLogy()
-	DummyGraph=TH1F("DummyGraph","",100,10,40)
+	DummyGraph=TH1F("DummyGraph","",100,10,58)
     	DummyGraph.GetXaxis().SetTitle("#Lambda [TeV]")
     	if chan=="mumu":
-        	DummyGraph.GetYaxis().SetTitle("95% CL limit on singal strength #mu")
+        	DummyGraph.GetYaxis().SetTitle("95% CL limit on signal strength #mu")
     	elif chan=="elel":
         	DummyGraph.GetYaxis().SetTitle("95% CL limit on signal strength #mu")
     	elif chan=="elmu":
         	DummyGraph.GetYaxis().SetTitle("95% CL limit on signal strength #mu")
 
     	gStyle.SetOptStat(0)
-	DummyGraph.GetXaxis().SetRangeUser(10,40)
-
+	DummyGraph.GetXaxis().SetRangeUser(10,58)
+	if "Des" in output:
+		DummyGraph.GetXaxis().SetRangeUser(10,34)
     	DummyGraph.SetMinimum(0)
     	DummyGraph.SetMaximum(4)
     	DummyGraph.GetXaxis().SetLabelSize(0.04)
@@ -354,14 +361,14 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     
     	plCMS.Draw()
 
-    	plPrelim=TPaveLabel(.15,.76,.275,.82,"Supplementary","NBNDC")
+    	plPrelim=TPaveLabel(.15,.76,.275,.82,"Preliminary","NBNDC")
     	plPrelim.SetTextSize(0.6)
     	plPrelim.SetTextAlign(12)
     	plPrelim.SetTextFont(52)
     	plPrelim.SetFillColor(0)
     	plPrelim.SetFillStyle(0)
     	plPrelim.SetBorderSize(0)
-    	#plPrelim.Draw()
+    	plPrelim.Draw()
 
 
     	cCL.SetTickx(1)
@@ -409,7 +416,7 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	leg1.SetLineColor(0)
     	#leg1.Draw("hist")
 
-	if "Moriond" in output:
+	if "Moriond" in output or "2016" in output:
          	if (chan=="mumu"): 
             		plLumi=TPaveLabel(.65,.905,.9,.99,"36.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
         	elif (chan=="elel"):
@@ -423,6 +430,14 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
             		plLumi=TPaveLabel(.65,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee)","NBNDC")
         	elif (chan=="elmu"):
             		plLumi=TPaveLabel(.4,.905,.9,.99,"41.5 fb^{-1} (13 TeV, ee) + 42.1 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+	elif "2018" in output:
+         	if (chan=="mumu"): 
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"61.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+        	elif (chan=="elel"):
+            		plLumi=TPaveLabel(.65,.905,.9,.99,"59.4 fb^{-1} (13 TeV, ee)","NBNDC")
+        	elif (chan=="elmu"):
+            		plLumi=TPaveLabel(.4,.905,.9,.99,"59.4 fb^{-1} (13 TeV, ee) + 61.3 fb^{-1} (13 TeV, #mu#mu)","NBNDC")
+
 
 	elif "Run2" in output:
          	if (chan=="mumu"): 
@@ -444,7 +459,9 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     	plLumi.SetFillColor(0)
     	plLumi.SetBorderSize(0)
     	plLumi.Draw()
-    	line = TLine(10,1,40,1)
+    	line = TLine(10,1,58,1)
+	if "Des" in output:
+		line = TLine(10,1,34,1)
 	line.SetLineColor(ROOT.kRed)
 	line.SetLineWidth(2)
 	line.Draw("same")
@@ -469,6 +486,70 @@ def makeLimitPlot(output,obs,exp,chan,interference,printStats=False,obs2="",rati
     		line.Draw("same")
 
     		ratioGraph.Draw("sameP")
+
+
+	print ""
+	print args.config, args.tag
+
+	l_o       = -999.
+	l_e       = -999.
+	l_e1SUp   = -999.
+	l_e1SDown = -999.
+	l_e2SUp   = -999.
+	l_e2SDown = -999.
+	diff_obs       = 1.e9
+	diff_exp       = 1.e9
+	diff1SUp_exp   = 1.e9
+	diff1SDown_exp = 1.e9
+	diff2SUp_exp   = 1.e9
+	diff2SDown_exp = 1.e9
+	for i in range(10000, 52000):
+
+		m = float(i)*1e-3
+		theo_y = 1
+
+		obs_y  = GraphObs.Eval(m)
+		diff_obs_tmp = abs(theo_y-obs_y)
+		if diff_obs_tmp < diff_obs:
+			diff_obs = diff_obs_tmp
+			l_o = m
+
+		exp_y  = GraphExp.Eval(m)
+		diff_exp_tmp = abs(theo_y-exp_y)
+		if diff_exp_tmp < diff_exp:
+			diff_exp = diff_exp_tmp
+			l_e = m
+		exp1SUp_y = Graph1SUp.Eval(m)
+		diff_exp_tmp = abs(theo_y-exp1SUp_y)
+		if diff_exp_tmp < diff1SUp_exp:
+			diff1SUp_exp = diff_exp_tmp
+			l_e1SUp = m
+		exp1SDown_y = Graph1SDown.Eval(m)
+		diff_exp_tmp = abs(theo_y-exp1SDown_y)
+		if diff_exp_tmp < diff1SDown_exp:
+			diff1SDown_exp = diff_exp_tmp
+			l_e1SDown = m
+		exp2SUp_y = Graph2SUp.Eval(m)
+		diff_exp_tmp = abs(theo_y-exp2SUp_y)
+		if diff_exp_tmp < diff2SUp_exp:
+			diff2SUp_exp = diff_exp_tmp
+			l_e2SUp = m
+		exp2SDown_y = Graph2SDown.Eval(m)
+		diff_exp_tmp = abs(theo_y-exp2SDown_y)
+		if diff_exp_tmp < diff2SDown_exp:
+			diff2SDown_exp = diff_exp_tmp
+			l_e2SDown = m
+
+
+
+
+
+	print "\t Obs: %.6f TeV" % (l_o)
+	print "\t Exp: %.6f TeV" % (l_e)
+	print "\t Exp 1S Up: %.6f TeV" % (l_e1SUp)
+	print "\t Exp 1S Down: %.6f TeV" % (l_e1SDown)
+	print "\t Exp 2S Up: %.6f TeV" % (l_e2SUp)
+	print "\t Exp 2S Down: %.6f TeV" % (l_e2SDown)
 
 
 

@@ -10,10 +10,10 @@ massesExp = [[100,200,600,500,4,500000], [100,600,1000,250,8,500000], [250,1000,
 
 
 
-libraries = ["ZPrimeMuonBkgPdf2_cxx.so","ZPrimeEleBkgPdf3_cxx.so","PowFunc_cxx.so","RooCruijff_cxx.so","RooDCBShape_cxx.so"]
+libraries = ["ZPrimeMuonBkgPdf2_cxx.so","ZPrimeMuonBkgPdf2_cxx.so","ZPrimeEleBkgPdf3_cxx.so","PowFunc_cxx.so","RooCruijff_cxx.so","RooDCBShape_cxx.so"]
 
 #channels = ["dimuon_BB","dimuon_BEpos","dimuon_BEneg"]
-channels = ["dielectron_Moriond2017_EBEB","dielectron_Moriond2017_EBEE","dimuon_Moriond2017_BB","dimuon_Moriond2017_BE","dielectron_2017_EBEB","dielectron_2017_EBEE"]
+channels = ["dielectron_Moriond2017_EBEB","dielectron_Moriond2017_EBEE","dimuon_Moriond2017_BB","dimuon_Moriond2017_BE","dielectron_2017_EBEB","dielectron_2017_EBEE","dimuon_2017_BB","dimuon_2017_BE"]
 numInt = 500000
 numToys = 5
 exptToys = 500

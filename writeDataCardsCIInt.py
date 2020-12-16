@@ -96,7 +96,9 @@ correlations = {
 "pdf":2,
 "ID":0,
 "lumi":2,
-"PU":2
+"PU":2,
+"PdfWeights":2,
+"prefire":2
 }
 
 
@@ -188,6 +190,23 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 	 			result += "  1  "
 	
 		result += "\n"		
+
+	if uncert == "prefire" and not "muon" in channel:
+		result = "%s shape 1 1 1"%name
+	        for background in backgrounds:
+			if background == "Jets":
+        			result += "  -  "	
+        		else:
+				result += "  1  "	
+		result += "\n"		
+
+	if uncert == "PdfWeights":
+		result = "%s shape - 1 - -"%name
+	        for background in backgrounds:
+			if background == "Jets":
+        			result += "  -  "	
+		result += "\n"		
+
 	if uncert == "PU" and not "muon" in channel:
 		result = "%s shape 1 1 1"%name
 	        for background in backgrounds:
@@ -218,6 +237,13 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 	        for background in backgrounds:
         		result += "  -  "
 		result += "\n"		
+
+	if uncert == "pdfWeights":
+		result = "%s shape 1 1 1"%(name)
+	        for background in backgrounds:
+        		result += "  -  "
+		result += "\n"		
+
 
         return result
 		
@@ -264,6 +290,7 @@ def main():
 	parser.add_argument("-i", "--inject", action="store_true", default=False, help="inject signal")
 	parser.add_argument("-c", "--chan", dest = "chan", default="", help="name of the channel to use")
 	parser.add_argument("-o", "--options", dest = "config", default="", help="name of config file")
+        parser.add_argument("-L", "--Lambda", dest = "Lambda", default = -1,type=int, help="Lambda values")
 	parser.add_argument("-t", "--tag", dest = "tag", default="", help="tag")
 	parser.add_argument("-s", "--signif", action="store_true", default=False, help="write card for significances")
         parser.add_argument( "--workDir", dest = "workDir", default = "", help="tells batch jobs where to put the datacards. Not for human use!")
@@ -293,11 +320,14 @@ def main():
 
 	lambdas = config.lambdas
 
-	nPoints = len(config.lambdas)*len(config.interferences)
 	
 
 	index = 0
-	for Lambda in config.lambdas:
+	Lambdas = config.lambdas
+	if args.Lambda > 0:
+		Lambdas = [args.Lambda]	
+	nPoints = len(Lambdas)*len(config.interferences)
+	for Lambda in Lambdas:
 		for interference in config.interferences:
 
 			name = "%s/%s_%d_%s" % (cardDir,args.chan, Lambda, interference)

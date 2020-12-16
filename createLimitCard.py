@@ -75,9 +75,9 @@ if __name__ == "__main__":
 		outFileName += "_binned"
 	
 	# add model indentifier
-	modelID = ""
-	#if args.ADD: modelID = "ADD_"
-	#if args.CI: modelID = "CI_"
+	modelID = "ZPrime_"
+	if args.ADD: modelID = "ADD_"
+	if args.CI: modelID = "CI_"
 	outFileName = modelID + outFileName
 
 	if not os.path.exists("cards"):
@@ -134,6 +134,7 @@ if __name__ == "__main__":
                                 		limitTree = ROOT.TChain()
                                 		limitTree.Add(fileName+"/limit")
                                 		for entry in limitTree:
+							print entry.limit
 							if not entry.limit == 10:
 								outFile.write("%d %.15f\n"%(Lambda,entry.limit))        
                 			else:

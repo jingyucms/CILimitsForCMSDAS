@@ -53,27 +53,36 @@ observation %(data)s
 '''
 
 
-def getChannelBlock(backgrounds,inputs,signalScale,chan):
-	nBkgs = len(backgrounds)
-	result = "bin %s"%chan
-	for i in range(0,nBkgs):
-		result += " %s "%chan
+def getChannelBlock(backgrounds,inputs,signalScale,chan,args):
+        if args.combineSigDY:
+            beginIndex = 1
+        else:
+            beginIndex = 0
+	result = "bin %s_%s"%(chan, args.mass)
+	for i in range(beginIndex,len(backgrounds)):
+		result += " %s_%s "%(chan,args.mass)
 	result+="\n"
 	result += "process      sig"
-	for background in backgrounds:
-		result+= " %s  "%background
+	for i in range(beginIndex, len(backgrounds)):
+		result+= " %s  "%backgrounds[i]
 	result +="\n"
 	result +="process       0 "
-	for i in range(0,nBkgs):
-		result+=" %d"%(i+1)
+	for i in range(beginIndex, len(backgrounds)):
+                if args.combineSigDY:
+                    result+=" %d"%(i)
+                else:
+                    result+=" %d"%(i+1)
 	result +="\n"
-	if inputs["sig"] >= 0:
+	if inputs["sig"] > 0.01:
 		result += "rate         %.2f "%inputs["sig"]
 	else:	
-		result += "rate         0.0 "
+		result += "rate         1e-9 "
 	#result += "rate         1 "
-	for background in backgrounds:
-		result+= " %.2f"%inputs["bkg%s"%background]
+	for i in range(beginIndex, len(backgrounds)):
+                if inputs["bkg%s"%backgrounds[i]] > 0.01:
+                    result+= " %.2f"%inputs["bkg%s"%backgrounds[i]]
+                else:
+                    result+= " 1e-9"
 	return result
  
 correlations = {
@@ -87,13 +96,18 @@ correlations = {
 "pdf":2,
 "ID":0,
 "lumi":2,
-"PU":2
+"PU":2,
+"PdfWeights":2,
+"prefire":2
 }
 
 
 
-def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
-
+def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif,args):
+        if args.combineSigDY:
+            beginIndex = 1
+        else:
+            beginIndex = 0
 	result = ""
 	if correlate:
 		if correlations[uncert] == 0:
@@ -110,8 +124,8 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 	if uncert == "xSecOther":
 		result = "%s lnN - "%name
-	        for background in backgrounds:
-			if background == "Other":
+	        for i in range(beginIndex,len(backgrounds)):
+			if backgrounds[i] == "Other":
         			result += "  %.3f  "%value
 			else:
         			result += " - "
@@ -120,8 +134,8 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 	if uncert == "jets":
 		result = "%s lnN - "%name
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  %.3f  "%value
 			else:
         			result += " - "
@@ -131,8 +145,8 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 	if uncert == "zPeak":
 		result = "%s lnN -"%name
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "
 			else:
         			result += "  %.3f"%value
@@ -142,8 +156,8 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 	if uncert == "trig":
 		result = "%s lnN %.3f"%(name,value)
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "
 			else:
         			result += "  %.3f"%value
@@ -154,27 +168,27 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 			result = "%s  lnN %.3f/%.3f"%(name,yields["sigScale"][0],yields["sigScale"][1])
 		else:
 			result = "%s  lnN %.3f"%(name,yields["sigScale"][0])
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "
 			else:
 				if "dimuon" in channel: 
-					if yields["bkg%sScale"%background][0] > 1.: 
-        					result += "  %.3f  "%(yields["bkg%sScale"%background][0])
+					if yields["bkg%sScale"%backgrounds[i]][0] > 1.: 
+        					result += "  %.3f  "%(yields["bkg%sScale"%backgrounds[i]][0])
         				else:	
-						result += "  %.3f  "%(1./yields["bkg%sScale"%background][0])
+						result += "  %.3f  "%(1./yields["bkg%sScale"%backgrounds[i]][0])
         			else:	
-					result += "  %.3f/%.3f  "%(yields["bkg%sScale"%background][0],yields["bkg%sScale"%background][1])
+					result += "  %.3f/%.3f  "%(yields["bkg%sScale"%backgrounds[i]][0],yields["bkg%sScale"%backgrounds[i]][1])
 	
 		result += "\n"		
 
 	if uncert == "stats":
 		result = "%s  lnN %.3f"%(name,yields["sigStats"])
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "
        			else:
-        			result += "  %.3f  "%yields["bkg%sStats"%background]
+        			result += "  %.3f  "%yields["bkg%sStats"%backgrounds[i]]
 	
 		result += "\n"		
 
@@ -182,44 +196,62 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 	if uncert == "pdf":
 		result = "%s  lnN %.3f"%(name,yields["sigPDF"])
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "	
         		else:
-        			result += "  %.3f  "%yields["bkg%sPDF"%background]
-		result += "\n"		
+        			result += "  %.3f  "%yields["bkg%sPDF"%backgrounds[i]]
+		result += "\n"	
+
 	if uncert == "PU" and "electron" in channel:
 		result = "%s  lnN %.3f/%.3f"%(name,yields["sigPU"][0],yields["sigPU"][1])
-	        for background in backgrounds:
-			if background == "Jets":
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
         			result += "  -  "	
         		else:
-				result += "  %.3f/%.3f  "%(yields["bkg%sPU"%background][0],yields["bkg%sPU"%background][1])
+				result += "  %.3f/%.3f  "%(yields["bkg%sPU"%backgrounds[i]][0],yields["bkg%sPU"%backgrounds[i]][1])
+		result += "\n"		
+	if uncert == "prefire" and "electron" in channel:
+		result = "%s  lnN %.3f/%.3f"%(name,yields["sigPrefire"][0],yields["sigPrefire"][1])
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
+        			result += "  -  "	
+        		else:
+				result += "  %.3f/%.3f  "%(yields["bkg%sPrefire"%backgrounds[i]][0],yields["bkg%sPrefire"%backgrounds[i]][1])
 		result += "\n"		
 
 	if "muon" in channel:
 		if uncert == "ID":
 			result = "%s  lnN %.3f"%(name,yields["sigID"])
-		        for background in backgrounds:
-				if background == "Jets":
+		        for i in range(beginIndex, len(backgrounds)):
+				if backgrounds[i] == "Jets":
         				result += "  -  "	
         			else:
-        				result += "  %.3f  "%yields["bkg%sID"%background]
+        				result += "  %.3f  "%yields["bkg%sID"%backgrounds[i]]
 			result += "\n"		
 		if uncert == "res":
 			result = "%s  lnN %.3f"%(name,yields["sigRes"])
-		        for background in backgrounds:
-				if background == "Jets":
+		        for i in range(beginIndex, len(backgrounds)):
+				if backgrounds[i] == "Jets":
         				result += "  -  "
        				else:
-        				result += "  %.3f  "%yields["bkg%sRes"%background]
+        				result += "  %.3f  "%yields["bkg%sRes"%backgrounds[i]]
 	
 			result += "\n"		
 
 	if uncert == "lumi":
 		result = "%s lnN %.3f"%(name,value)
+	        for i in range(beginIndex, len(backgrounds)):
+			if backgrounds[i] == "Jets":
+        			result += "  -  "
+        		else:	
+				result += "  -  "
+		result += "\n"			
+
+	if uncert == "pdfWeights":
+		result = "%s lnN %.3f"%(name,value)
 	        for background in backgrounds:
-			result += "  -  "
+        		result += "  -  "
 		result += "\n"		
 
 
@@ -230,7 +262,7 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif):
 
 
 def writeCard(card,fileName):
-
+    
 	text_file = open("%s.txt" % (fileName), "w")
 	text_file.write(card)
 	text_file.close()
@@ -243,10 +275,13 @@ def main():
 	parser.add_argument("-i", "--inject", action="store_true", default=False, help="inject signal")
 	parser.add_argument("-c", "--chan", dest = "chan", default="", help="name of the channel to use")
 	parser.add_argument("-o", "--options", dest = "config", default="", help="name of config file")
+        parser.add_argument("-L", "--Lambda", dest = "Lambda", default = -1,type=int, help="Lambda values")
 	parser.add_argument("-t", "--tag", dest = "tag", default="", help="tag")
 	parser.add_argument("-m", "--mass", dest = "mass", default=2000, help="tag")
 	parser.add_argument("-s", "--signif", action="store_true", default=False, help="write card for significances")
         parser.add_argument( "--workDir", dest = "workDir", default = "", help="tells batch jobs where to put the datacards. Not for human use!")
+        parser.add_argument("--combineSigDY", dest = "combineSigDY", action = "store_true", default = False, help="Combines Signal and DY Histograms")
+        parser.add_argument('--ADD', action= "store_true", default = False, help="ADD")
 				
 	args = parser.parse_args()	
 	tag = args.tag
@@ -267,26 +302,34 @@ def main():
 
 	from createInputs import createSingleBinCI
 	from tools import getCardDir
-	cardDir = getCardDir(args,config)	
+	cardDir = getCardDir(args,config)
+
 	if not os.path.exists(cardDir):
     		os.makedirs(cardDir)
 
 	lambdas = config.lambdas
 	nPoints = len(config.lambdas)*len(config.interferences)
 	
-
 	index = 0
-	for Lambda in config.lambdas:
+	Lambdas = config.lambdas
+	if args.Lambda > 0:
+		Lambdas = [args.Lambda]	
+
+	for Lambda in Lambdas:
 		for interference in config.interferences:
-			name = "%s/%s_%d_%s" % (cardDir,args.chan, Lambda, interference)
-			if args.inject or "toy" in tag:	
-				yields = createSingleBinCI(Lambda,interference, name,args.chan,args.config, args.mass ,dataFile=injectedFile)
-			else:	
-				yields = createSingleBinCI(Lambda,interference, name,args.chan,args.config, args.mass)
-		
+                        name = "%s/%s_%d_%s" % (cardDir,args.chan, Lambda, interference)
+                        if args.inject or "toy" in tag:	
+                            yields = createSingleBinCI(Lambda,interference, name,args.chan,args.config,args.mass,args.combineSigDY,args.ADD,dataFile=injectedFile)
+                        else:	
+                            yields = createSingleBinCI(Lambda,interference, name,args.chan,args.config,args.mass, args.combineSigDY,args.ADD)
+
 			backgrounds = config.backgrounds
 
-			nBkg = len(backgrounds) 
+                        if args.combineSigDY:
+                            nBkg = len(backgrounds)-1 
+                        else:
+                            nBkg = len(backgrounds)
+						
 	
 						
 
@@ -296,7 +339,7 @@ def main():
 			channelDict["time"] = time.strftime("%H:%M:%S")
 			#channelDict["hash"] = get_git_revision_hash()	
 
-			channelDict["bin"] = args.chan
+			channelDict["bin"] = args.chan+"_"+args.mass
 
 			channelDict["nBkgs"] = nBkg
 			scale = False
@@ -307,12 +350,12 @@ def main():
 	
 			channelDict["data"] = yields["data"]
 		
-			channelDict["channels"]	= getChannelBlock(backgrounds,yields,1,args.chan)		
+			channelDict["channels"]	= getChannelBlock(backgrounds,yields,1,args.chan,args)		
 			
 			uncertBlock = ""
 			uncerts = module.provideUncertaintiesCI(Lambda)
 			for uncert in config.systematics:
-				uncertBlock += getUncert(uncert,uncerts[uncert],backgrounds,Lambda,args.chan,config.correlate,yields,args.signif)
+				uncertBlock += getUncert(uncert,uncerts[uncert],backgrounds,Lambda,args.chan,config.correlate,yields,args.signif,args)
 		
 			channelDict["systs"] = uncertBlock
 

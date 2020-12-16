@@ -69,7 +69,7 @@ def provideUncertaintiesCI(mass):
 	result = {}
 
 	result["trig"] = 1.06
-	result["zPeak"] = 1.01
+	result["zPeak"] = 1.02
 	result["xSecOther"] = 1.07
 	result["jets"] = 1.5
 	result["lumi"] = 1.025
@@ -79,6 +79,8 @@ def provideUncertaintiesCI(mass):
 	result["pdf"] = 0.0 ## dummy values
 	result["ID"] = 0.0 ## dummy values
 	result["PU"] = 0.0 ## dummy values
+	result["PdfWeights"] = 0.0 ## dummy values
+	result["prefire"] = 0.0 ## dummy values
 
 	return result
 

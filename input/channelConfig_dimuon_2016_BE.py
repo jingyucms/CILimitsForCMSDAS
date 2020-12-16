@@ -161,6 +161,8 @@ def provideUncertaintiesCI(mass):
 	result["pdf"] = 0.0 ## dummy value
 	result["ID"] = 0.0 ## dummy value
 	result["PU"] = 0.0 ## dummy value
+	result["PdfWeights"] = 0.0 ## dummy values
+	result["prefire"] = 0.0 ## dummy values
 	return result
 
 
