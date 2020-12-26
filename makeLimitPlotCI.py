@@ -489,8 +489,8 @@ if __name__ == "__main__":
 	outputfile = "limitPlotCI_%s"%args.config
 	if not args.tag == "":
 		outputfile += "_"+args.tag        
-	obs = "cards/limitCard_%s_Obs"%args.config 
-	exp = "cards/limitCard_%s_Exp"%args.config 
+	obs = "cards/CI_limitCard_%s_Obs"%args.config 
+	exp = "cards/CI_limitCard_%s_Exp"%args.config 
 	if not args.tag == "":
 		obs += "_" + args.tag
 		exp += "_" + args.tag

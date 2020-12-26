@@ -1248,7 +1248,7 @@ def createSingleBinCI(L,interference,name,channel,scanConfigName,mThresh,addSigD
 		result["sigScale"] = [abs(valScaleDown/val),1.]
 		result["sigID"] = abs(1./(valID/val))
 		result["sigRes"] = abs(valSmear/val) 
-	result["sigPDF"] = 1.13312898065358908
+	result["sigPDF"] = 1.0 #dummy value to be replaced
 	
 	mThresh = float(mThresh)
 	dataHist = inputFile.Get("dataHist_%s"%channel)
