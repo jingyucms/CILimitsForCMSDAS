@@ -177,8 +177,11 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif,a
         					result += "  %.3f  "%(yields["bkg%sScale"%backgrounds[i]][0])
         				else:	
 						result += "  %.3f  "%(1./yields["bkg%sScale"%backgrounds[i]][0])
-        			else:	
-					result += "  %.3f/%.3f  "%(yields["bkg%sScale"%backgrounds[i]][0],yields["bkg%sScale"%backgrounds[i]][1])
+        			else:
+					if type(yields["bkg%sScale"%backgrounds[i]]) is list:	
+						result += "  %.3f/%.3f  "%(yields["bkg%sScale"%backgrounds[i]][0],yields["bkg%sScale"%backgrounds[i]][1])
+					else:	
+						result += "  %.3f  "%(yields["bkg%sScale"%backgrounds[i]])
 	
 		result += "\n"		
 
@@ -209,7 +212,10 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif,a
 			if backgrounds[i] == "Jets":
         			result += "  -  "	
         		else:
-				result += "  %.3f/%.3f  "%(yields["bkg%sPU"%backgrounds[i]][0],yields["bkg%sPU"%backgrounds[i]][1])
+				if type(yields["bkg%sPU"%backgrounds[i]]) is list:
+					result += "  %.3f/%.3f  "%(yields["bkg%sPU"%backgrounds[i]][0],yields["bkg%sPU"%backgrounds[i]][1])
+				else:	
+					result += "  %.3f  "%(yields["bkg%sPU"%backgrounds[i]])
 		result += "\n"		
 	if uncert == "prefire" and "electron" in channel:
 		result = "%s  lnN %.3f/%.3f"%(name,yields["sigPrefire"][0],yields["sigPrefire"][1])
@@ -217,7 +223,10 @@ def getUncert(uncert, value, backgrounds, mass,channel,correlate,yields,signif,a
 			if backgrounds[i] == "Jets":
         			result += "  -  "	
         		else:
-				result += "  %.3f/%.3f  "%(yields["bkg%sPrefire"%backgrounds[i]][0],yields["bkg%sPrefire"%backgrounds[i]][1])
+				if type(yields["bkg%sPrefire"%backgrounds[i]]) is list:
+					result += "  %.3f/%.3f  "%(yields["bkg%sPrefire"%backgrounds[i]][0],yields["bkg%sPrefire"%backgrounds[i]][1])
+				else:	
+					result += "  %.3f  "%(yields["bkg%sPrefire"%backgrounds[i]])
 		result += "\n"		
 
 	if "muon" in channel:

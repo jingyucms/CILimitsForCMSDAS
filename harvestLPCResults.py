@@ -22,7 +22,6 @@ my_env = os.environ.copy()
 process = subprocess.Popen(['eos' ,'root://cmseos.fnal.gov', 'ls', '/store/user/%s/limits/%s/'%(user,outDir)], stdout=subprocess.PIPE,env=my_env)
 out, err = process.communicate()
 for fileName in out.splitlines():
-		print fileName
 		copyCommand = ["xrdcp", "root://cmseos.fnal.gov//store/user/%s/limits/%s/%s"%(user,outDir,fileName), "%s//%s"%(outDir,fileName)]
 		subprocess.call(copyCommand)
 
