@@ -296,8 +296,8 @@ def main():
 
         import glob
 	from ROOT import gROOT
-        for f in glob.glob("userfuncs/*.cxx"):
-                gROOT.ProcessLine(".L "+f+"+")
+        #for f in glob.glob("userfuncs/*.cxx"):
+        #        gROOT.ProcessLine(".L "+f+"+")
 
 	configName = "scanConfiguration_%s"%args.config
 	config =  __import__(configName)
